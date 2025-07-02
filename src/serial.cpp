@@ -1,7 +1,6 @@
 #include "serial.h"
 #include "status_codes.h"
 
-#include <cerrno>
 #include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
@@ -11,6 +10,7 @@
 #include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
+#include <utility>
 
 // -----------------------------------------------------------------------------
 // Internal helpers & types
@@ -91,14 +91,14 @@ inline void invokeError(int code) {
 intptr_t serialOpen(void *port, int baudrate, int dataBits, int parity,
                     int stopBits) {
   if (!port) {
-    invokeError(status(StatusCodes::INVALID_HANDLE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
     return 0;
   }
 
   const char *portName = static_cast<const char *>(port);
   int fd = open(portName, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0) {
-    invokeError(status(StatusCodes::INVALID_HANDLE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
     return 0;
   }
 
@@ -106,7 +106,7 @@ intptr_t serialOpen(void *port, int baudrate, int dataBits, int parity,
 
   termios tty{};
   if (tcgetattr(fd, &tty) != 0) {
-    invokeError(status(StatusCodes::GET_STATE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::GET_STATE_ERROR));
     close(fd);
     delete handle;
     return 0;
@@ -166,7 +166,7 @@ intptr_t serialOpen(void *port, int baudrate, int dataBits, int parity,
   tty.c_cc[VTIME] = 10; // 1s read timeout
 
   if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-    invokeError(status(StatusCodes::SET_STATE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::SET_STATE_ERROR));
     close(fd);
     delete handle;
     return 0;
@@ -182,7 +182,7 @@ void serialClose(int64_t handlePtr) {
 
   tcsetattr(handle->fd, TCSANOW, &handle->original); // restore
   if (close(handle->fd) != 0) {
-    invokeError(status(StatusCodes::CLOSE_HANDLE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::CLOSE_HANDLE_ERROR));
   }
   delete handle;
 }
@@ -208,7 +208,7 @@ int serialRead(int64_t handlePtr, void *buffer, int bufferSize, int timeout,
                int /*multiplier*/) {
   auto *handle = reinterpret_cast<SerialPortHandle *>(handlePtr);
   if (!handle) {
-    invokeError(status(StatusCodes::INVALID_HANDLE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
     return 0;
   }
 
@@ -218,7 +218,7 @@ int serialRead(int64_t handlePtr, void *buffer, int bufferSize, int timeout,
 
   ssize_t n = read(handle->fd, buffer, bufferSize);
   if (n < 0) {
-    invokeError(status(StatusCodes::READ_ERROR));
+    invokeError(std::to_underlying(StatusCodes::READ_ERROR));
     return 0;
   }
   if (readCallback)
@@ -230,7 +230,7 @@ int serialWrite(int64_t handlePtr, const void *buffer, int bufferSize,
                 int timeout, int /*multiplier*/) {
   auto *handle = reinterpret_cast<SerialPortHandle *>(handlePtr);
   if (!handle) {
-    invokeError(status(StatusCodes::INVALID_HANDLE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
     return 0;
   }
 
@@ -240,7 +240,7 @@ int serialWrite(int64_t handlePtr, const void *buffer, int bufferSize,
 
   ssize_t n = write(handle->fd, buffer, bufferSize);
   if (n < 0) {
-    invokeError(status(StatusCodes::WRITE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::WRITE_ERROR));
     return 0;
   }
   if (writeCallback)
@@ -252,7 +252,7 @@ int serialReadUntil(int64_t handlePtr, void *buffer, int bufferSize,
                     int timeout, int /*multiplier*/, void *untilCharPtr) {
   auto *handle = reinterpret_cast<SerialPortHandle *>(handlePtr);
   if (!handle) {
-    invokeError(status(StatusCodes::INVALID_HANDLE_ERROR));
+    invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
     return 0;
   }
 
@@ -282,7 +282,7 @@ int serialGetPortsInfo(void *buffer, int bufferSize, void *separatorPtr) {
 
   DIR *dir = opendir("/dev/serial/by-id");
   if (!dir) {
-    invokeError(status(StatusCodes::NOT_FOUND_ERROR));
+    invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR));
     return 0;
   }
   struct dirent *entry;
@@ -304,7 +304,7 @@ int serialGetPortsInfo(void *buffer, int bufferSize, void *separatorPtr) {
   }
 
   if (static_cast<int>(result.size()) + 1 > bufferSize) {
-    invokeError(status(StatusCodes::BUFFER_ERROR));
+    invokeError(std::to_underlying(StatusCodes::BUFFER_ERROR));
     return 0;
   }
 
