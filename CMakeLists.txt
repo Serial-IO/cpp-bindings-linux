@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.30)
 
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 2)
@@ -7,7 +7,20 @@ set(VERSION_PATCH 0)
 set(PROJECT_N CPP-Unix-Bindings)
 project(${PROJECT_N} VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
-set(CMAKE_CXX_STANDARD 20)
+# Generate compile_commands.json for clang-based tooling (clangd / clang-tidy)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Ensure clang tooling can pick up compile_commands.json from project root
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    add_custom_target(copy-compile-commands ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/compile_commands.json
+            ${PROJECT_SOURCE_DIR}/compile_commands.json
+        COMMENT "Copy compile_commands.json to project root" 
+        VERBATIM)
+endif()
+
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/**.cpp)
@@ -51,4 +64,4 @@ set_target_properties(${PROJECT_N} PROPERTIES
                               VERSION ${PROJECT_VERSION}
                             SOVERSION ${PROJECT_VERSION_MAJOR})
 
-target_include_directories(${PROJECT_N} PUBLIC include)
+target_include_directories(${PROJECT_N} PUBLIC ${PROJECT_SOURCE_DIR}/src)

@@ -2,3 +2,4 @@
 build/
 src/version_config.cpp
 .cache/
+compile_commands.json

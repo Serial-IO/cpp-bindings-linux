@@ -1,0 +1,34 @@
+Checks: >
+  -*,
+  bugprone-* ,
+  performance-* ,
+  readability-* ,
+  modernize-* ,
+  cppcoreguidelines-* ,
+  portability-* ,
+  misc-unused-* ,
+  hicpp-* ,
+  clang-analyzer-* ,
+  -modernize-use-trailing-return-type
+
+WarningsAsErrors: >
+  bugprone-* ,
+  performance-* ,
+  clang-analyzer-*
+
+HeaderFilterRegex: 'src/.*'
+FormatStyle: file
+
+Standard: c++23
+
+CheckOptions:
+  - key:             modernize-use-auto.MinTypeNameLength
+    value:           '5'
+  - key:             modernize-use-auto.RemoveStars
+    value:           'false'
+  - key:             readability-identifier-naming.VariableCase
+    value:           lower_case
+  - key:             readability-identifier-naming.MemberCase
+    value:           lower_case
+  - key:             readability-identifier-naming.PrivateMemberPrefix
+    value:           '_' 
