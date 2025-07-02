@@ -13,6 +13,13 @@
 #include <utility>
 
 // -----------------------------------------------------------------------------
+// Global callback function pointers (default nullptr)
+// -----------------------------------------------------------------------------
+void (*errorCallback)(int) = nullptr;
+void (*readCallback)(int) = nullptr;
+void (*writeCallback)(int) = nullptr;
+
+// -----------------------------------------------------------------------------
 // Internal helpers & types
 // -----------------------------------------------------------------------------
 namespace {

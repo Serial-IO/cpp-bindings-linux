@@ -65,3 +65,17 @@ set_target_properties(${PROJECT_N} PROPERTIES
                             SOVERSION ${PROJECT_VERSION_MAJOR})
 
 target_include_directories(${PROJECT_N} PUBLIC ${PROJECT_SOURCE_DIR}/src)
+
+add_executable(serial_tests tests/serial_test.cpp)
+target_link_libraries(serial_tests PRIVATE ${PROJECT_N})
+
+target_include_directories(serial_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
+add_custom_command(TARGET serial_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:${PROJECT_N}>
+            $<TARGET_FILE_DIR:serial_tests>
+    COMMENT "Copy shared library next to test binary")
+
+enable_testing()
+add_test(NAME SerialEchoTest COMMAND serial_tests /dev/ttyACM0)
