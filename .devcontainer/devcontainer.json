@@ -16,6 +16,11 @@
     },
     "runArgs": [
         "--network",
-        "host"
+        "host",
+        "--privileged",
+        "--device",
+        "/dev/bus/usb:/dev/bus/usb",
+        "--device=/dev/ttyUSB0:/dev/ttyUSB0",
+        "--group-add=dialout"
     ]
 }

@@ -32,9 +32,11 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
+#include <chrono>
 
 int main(int argc, char *argv[]) {
-  const char *port = argc > 1 ? argv[1] : "/dev/ttyACM0"; // default path
+  const char *port = argc > 1 ? argv[1] : "/dev/ttyUSB0"; // default path
   const std::string testMsg = "HELLO";
 
   intptr_t handle = serialOpen((void *)port, 115200, 8, 0, 0);
@@ -42,6 +44,11 @@ int main(int argc, char *argv[]) {
     std::cerr << "Failed to open port " << port << "\n";
     return 1;
   }
+
+  // Opening a serial connection toggles DTR on most Arduino boards, which
+  // triggers a reset.  Give the micro-controller a moment to reboot before we
+  // start talking to it, otherwise the first bytes might be lost.
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 
   // Send message
   int written =

@@ -78,4 +78,4 @@ add_custom_command(TARGET serial_tests POST_BUILD
     COMMENT "Copy shared library next to test binary")
 
 enable_testing()
-add_test(NAME SerialEchoTest COMMAND serial_tests /dev/ttyACM0)
+add_test(NAME SerialEchoTest COMMAND serial_tests /dev/ttyUSB0)
