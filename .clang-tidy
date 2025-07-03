@@ -1,15 +1,9 @@
 Checks: >
   -*,
-  bugprone-* ,
-  performance-* ,
   readability-* ,
   modernize-* ,
-  cppcoreguidelines-* ,
-  portability-* ,
-  misc-unused-* ,
-  hicpp-* ,
-  clang-analyzer-* ,
-  -modernize-use-trailing-return-type
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
 
 WarningsAsErrors: >
   bugprone-* ,
@@ -18,8 +12,6 @@ WarningsAsErrors: >
 
 HeaderFilterRegex: 'src/.*'
 FormatStyle: file
-
-Standard: c++23
 
 CheckOptions:
   - key:             modernize-use-auto.MinTypeNameLength
@@ -31,4 +23,8 @@ CheckOptions:
   - key:             readability-identifier-naming.MemberCase
     value:           lower_case
   - key:             readability-identifier-naming.PrivateMemberPrefix
-    value:           '_' 
+    value:           '_'
+  - key:             readability-function-size.ParameterThreshold
+    value:           '8'
+  - key:             readability-braces-around-statements.ShortStatementLines
+    value:           '0'

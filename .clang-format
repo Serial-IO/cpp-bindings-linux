@@ -1,6 +1,6 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
-ColumnLimit: 100
+ColumnLimit: 140
 TabWidth: 4
 UseTab: Never
 BreakBeforeBraces: Allman
@@ -11,4 +11,7 @@ SpaceBeforeParens: ControlStatements
 SortIncludes: true
 IncludeBlocks: Regroup
 ReflowComments: true
-Standard: Cpp23 
+ContinuationIndentWidth: 4
+BinPackParameters: false
+BinPackArguments: false
+ 
