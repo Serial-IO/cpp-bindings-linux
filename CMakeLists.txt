@@ -10,6 +10,18 @@ project(${PROJECT_N} VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 # Generate compile_commands.json for clang-based tooling (clangd / clang-tidy)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(cmake/CPM.cmake)
+
+CPMAddPackage(
+    NAME "googletest"
+    GITHUB_REPOSITORY "google/googletest"
+    GIT_TAG "v1.17.0"
+    GIT_SHALLOW TRUE
+    OPTIONS "GTEST_BUILD_TESTS OFF"
+    OPTIONS "GTEST_BUILD_EXAMPLES OFF"
+    OPTIONS "GTEST_BUILD_DOCS OFF"
+)
+
 # Ensure clang tooling can pick up compile_commands.json from project root
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
     add_custom_target(copy-compile-commands ALL
@@ -67,7 +79,7 @@ set_target_properties(${PROJECT_N} PROPERTIES
 target_include_directories(${PROJECT_N} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
 add_executable(serial_tests tests/serial_test.cpp)
-target_link_libraries(serial_tests PRIVATE ${PROJECT_N})
+target_link_libraries(serial_tests PRIVATE ${PROJECT_N} gtest_main)
 
 target_include_directories(serial_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 

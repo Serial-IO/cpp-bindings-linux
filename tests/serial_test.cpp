@@ -29,58 +29,49 @@
 
 #include "serial.h"
 
-#include <cassert>
 #include <chrono>
 #include <cstring>
-#include <iostream>
+#include <gtest/gtest.h>
 #include <string>
 #include <thread>
-#include <utility>
 
-int main(int argc, char* argv[])
+namespace
 {
-    const char* port = argc > 1 ? argv[1] : "/dev/ttyUSB0"; // default path
+const char* default_port = "/dev/ttyUSB0";
+} // namespace
+
+TEST(SerialEchoTest, EchoMessage)
+{
     const std::string test_msg = "HELLO";
 
-    intptr_t handle = serialOpen((void*)port, 115200, 8, 0, 0);
-    if (handle == 0)
-    {
-        std::cerr << "Failed to open port " << port << "\n";
-        return 1;
-    }
+    intptr_t handle = serialOpen((void*)default_port, 115200, 8, 0, 0);
+    ASSERT_NE(handle, 0) << "Failed to open port " << default_port;
 
     // Opening a serial connection toggles DTR on most Arduino boards, which
-    // triggers a reset.  Give the micro-controller a moment to reboot before we
+    // triggers a reset. Give the micro-controller a moment to reboot before we
     // start talking to it, otherwise the first bytes might be lost.
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // Send message
-    int written = serialWrite(handle, (void*)test_msg.c_str(), test_msg.size(), 100, 1);
-    if (std::cmp_not_equal(written, test_msg.size()))
-    {
-        std::cerr << "Write failed\n";
-        serialClose(handle);
-        return 2;
-    }
+    int written = serialWrite(handle, (void*)test_msg.c_str(), static_cast<int>(test_msg.size()), 100, 1);
+    ASSERT_EQ(written, static_cast<int>(test_msg.size())) << "Write failed";
 
     // Read echo
     char buffer[16] = {0};
-    int read_bytes = serialRead(handle, buffer, test_msg.size(), 500, 1);
-    if (std::cmp_not_equal(read_bytes, test_msg.size()))
-    {
-        std::cerr << "Read failed (got " << read_bytes << ")\n";
-        serialClose(handle);
-        return 3;
-    }
+    int read_bytes = serialRead(handle, buffer, static_cast<int>(test_msg.size()), 500, 1);
+    ASSERT_EQ(read_bytes, static_cast<int>(test_msg.size())) << "Read failed (got " << read_bytes << ")";
 
-    if (std::strncmp(buffer, test_msg.c_str(), test_msg.size()) != 0)
-    {
-        std::cerr << "Data mismatch: expected " << test_msg << ", got " << buffer << "\n";
-        serialClose(handle);
-        return 4;
-    }
+    ASSERT_EQ(std::strncmp(buffer, test_msg.c_str(), test_msg.size()), 0) << "Data mismatch: expected " << test_msg << ", got " << buffer;
 
-    std::cout << "Serial echo test passed on port " << port << "\n";
     serialClose(handle);
-    return 0;
+}
+
+int main(int argc, char** argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    if (argc > 1)
+    {
+        default_port = argv[1];
+    }
+    return RUN_ALL_TESTS();
 }
