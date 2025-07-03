@@ -78,16 +78,28 @@ set_target_properties(${PROJECT_N} PROPERTIES
 
 target_include_directories(${PROJECT_N} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-add_executable(serial_tests tests/serial_test.cpp)
-target_link_libraries(serial_tests PRIVATE ${PROJECT_N} gtest_main)
+add_executable(serial_integration_tests tests/serial_test.cpp)
+target_link_libraries(serial_integration_tests PRIVATE ${PROJECT_N} gtest_main)
 
-target_include_directories(serial_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(serial_integration_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-add_custom_command(TARGET serial_tests POST_BUILD
+add_custom_command(TARGET serial_integration_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:${PROJECT_N}>
-            $<TARGET_FILE_DIR:serial_tests>
+            $<TARGET_FILE_DIR:serial_integration_tests>
     COMMENT "Copy shared library next to test binary")
 
+# Unit test target covering additional API aspects
+add_executable(serial_unit_tests tests/serial_unit_tests.cpp)
+target_link_libraries(serial_unit_tests PRIVATE ${PROJECT_N} gtest_main)
+target_include_directories(serial_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
+add_custom_command(TARGET serial_unit_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:${PROJECT_N}>
+            $<TARGET_FILE_DIR:serial_unit_tests>
+    COMMENT "Copy shared library next to unit test binary")
+
 enable_testing()
-add_test(NAME SerialEchoTest COMMAND serial_tests /dev/ttyUSB0)
+add_test(NAME SerialEchoTest COMMAND serial_integration_tests /dev/ttyUSB0)
+add_test(NAME SerialUnitTests COMMAND serial_unit_tests)

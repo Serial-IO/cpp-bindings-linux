@@ -20,7 +20,9 @@
         "--privileged",
         "--device",
         "/dev/bus/usb:/dev/bus/usb",
-        "--device=/dev/ttyUSB0:/dev/ttyUSB0",
-        "--group-add=dialout"
+        "--device-cgroup-rule=c 188:* rwm",
+        "--device-cgroup-rule=c 166:* rwm",
+        "--group-add=dialout",
+        "--volume=/dev/serial/by-id:/dev/serial/by-id:ro"
     ]
 }
