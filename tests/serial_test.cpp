@@ -29,6 +29,7 @@
 
 #include "serial.h"
 
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <gtest/gtest.h>
@@ -62,6 +63,32 @@ TEST(SerialEchoTest, EchoMessage)
     ASSERT_EQ(read_bytes, static_cast<int>(test_msg.size())) << "Read failed (got " << read_bytes << ")";
 
     ASSERT_EQ(std::strncmp(buffer, test_msg.c_str(), test_msg.size()), 0) << "Data mismatch: expected " << test_msg << ", got " << buffer;
+
+    serialClose(handle);
+}
+
+TEST(SerialReadUntilTest, ReadUntilChar)
+{
+    const std::string test_msg = "WORLD\n"; // include terminator newline
+
+    intptr_t handle = serialOpen((void*)default_port, 115200, 8, 0, 0);
+    ASSERT_NE(handle, 0) << "Failed to open port " << default_port;
+
+    // Give the board time to reset after opening the port.
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // Send message (write includes the terminator char)
+    int written = serialWrite(handle, (void*)test_msg.c_str(), static_cast<int>(test_msg.size()), 100, 1);
+    ASSERT_EQ(written, static_cast<int>(test_msg.size())) << "Write failed";
+
+    // Read back until newline (inclusive)
+    std::array<char, 32> buffer{0};
+    char until = '\n';
+    int read_bytes = serialReadUntil(handle, buffer.data(), static_cast<int>(buffer.size()), 500, 1, &until);
+    ASSERT_EQ(read_bytes, static_cast<int>(test_msg.size())) << "serialReadUntil returned unexpected length";
+
+    ASSERT_EQ(std::strncmp(buffer.data(), test_msg.c_str(), test_msg.size()), 0)
+        << "Data mismatch: expected " << test_msg << ", got " << buffer.data();
 
     serialClose(handle);
 }
