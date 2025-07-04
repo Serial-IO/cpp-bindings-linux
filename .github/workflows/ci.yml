@@ -1,0 +1,45 @@
+name: Build & Release CPP-Unix-Bindings
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "**" ]
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    name: Build shared library
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake clang make
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compile
+        run: cmake --build build -j $(nproc)
+
+      - name: Upload library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libCPP-Unix-Bindings
+          path: build/libCPP-Unix-Bindings.so
+          retention-days: 14
+
+      - name: Attach library to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/libCPP-Unix-Bindings.so 
