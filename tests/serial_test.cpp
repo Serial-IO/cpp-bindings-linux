@@ -58,11 +58,12 @@ TEST(SerialEchoTest, EchoMessage)
     ASSERT_EQ(written, static_cast<int>(test_msg.size())) << "Write failed";
 
     // Read echo
-    char buffer[16] = {0};
-    int read_bytes = serialRead(handle, buffer, static_cast<int>(test_msg.size()), 500, 1);
-    ASSERT_EQ(read_bytes, static_cast<int>(test_msg.size())) << "Read failed (got " << read_bytes << ")";
+    std::array<char, 16> read_buffer{};
+    int bytes_read = serialRead(handle, read_buffer.data(), static_cast<int>(test_msg.size()), 500, 1);
+    ASSERT_EQ(bytes_read, static_cast<int>(test_msg.size())) << "Read failed (got " << bytes_read << ")";
 
-    ASSERT_EQ(std::strncmp(buffer, test_msg.c_str(), test_msg.size()), 0) << "Data mismatch: expected " << test_msg << ", got " << buffer;
+    ASSERT_EQ(std::strncmp(read_buffer.data(), test_msg.c_str(), test_msg.size()), 0)
+        << "Data mismatch: expected " << test_msg << ", got " << read_buffer.data();
 
     serialClose(handle);
 }

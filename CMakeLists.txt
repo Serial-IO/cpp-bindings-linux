@@ -78,12 +78,10 @@ set_target_properties(${PROJECT_N} PROPERTIES
 
 target_include_directories(${PROJECT_N} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-# Combined test target aggregating all test sources
 add_executable(tests
     tests/serial_test.cpp
     tests/serial_unit_tests.cpp)
 
-# Link against the library under test and GoogleTest (without gtest_main, we have our own main)
 target_link_libraries(tests PRIVATE ${PROJECT_N} gtest)
 
 target_include_directories(tests PRIVATE ${PROJECT_SOURCE_DIR}/src)

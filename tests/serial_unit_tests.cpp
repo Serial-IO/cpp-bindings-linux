@@ -13,7 +13,6 @@
 #include <string_view>
 #include <thread>
 #include <unistd.h>
-#include <vector>
 
 namespace
 {
@@ -59,7 +58,7 @@ struct SerialDevice
         }
     }
 
-    void writeToDevice(std::string_view data)
+    void writeToDevice(std::string_view data) const
     {
         serialWrite(handle, data.data(), static_cast<int>(data.size()), 500, 1);
     }
@@ -86,15 +85,15 @@ TEST(SerialOpenTest, InvalidPathInvokesErrorCallback)
 // ------------------------ serialGetPortsInfo checks ------------------------
 TEST(SerialGetPortsInfoTest, BufferTooSmallTriggersError)
 {
-    char sep[] = ";";
-    char buffer[4];
+    constexpr std::string_view separator{";"};
+    std::array<char, 4> info_buffer{};
     std::atomic<int> err_code{0};
 
     g_err_ptr = &err_code;
     serialOnError(errorCallback);
 
-    int res = serialGetPortsInfo(buffer, sizeof(buffer), sep);
-    EXPECT_EQ(res, 0); // function indicates failure via 0
+    int result = serialGetPortsInfo(info_buffer.data(), static_cast<int>(info_buffer.size()), (void*)separator.data());
+    EXPECT_EQ(result, 0); // function indicates failure via 0
     EXPECT_EQ(err_code.load(), static_cast<int>(StatusCodes::BUFFER_ERROR));
 
     serialOnError(nullptr);
@@ -102,17 +101,17 @@ TEST(SerialGetPortsInfoTest, BufferTooSmallTriggersError)
 
 TEST(SerialGetPortsInfoTest, LargeBufferReturnsZeroOrOne)
 {
-    char sep[] = ";";
-    char buffer[4096] = {0};
+    constexpr std::string_view separator{";"};
+    std::array<char, 4096> info_buffer{};
 
     std::atomic<int> err_code{0};
     g_err_ptr = &err_code;
     serialOnError(errorCallback);
 
-    int res = serialGetPortsInfo(buffer, sizeof(buffer), sep);
-    EXPECT_GE(res, 0);
+    int result = serialGetPortsInfo(info_buffer.data(), static_cast<int>(info_buffer.size()), (void*)separator.data());
+    EXPECT_GE(result, 0);
     // res is 0 (no ports) or 1 (ports found)
-    EXPECT_LE(res, 1);
+    EXPECT_LE(result, 1);
     // Acceptable error codes: none or NOT_FOUND_ERROR (e.g., dir missing)
     if (err_code != 0)
     {
@@ -125,27 +124,27 @@ TEST(SerialGetPortsInfoTest, LargeBufferReturnsZeroOrOne)
 // ---------------------------- Port listing helper ---------------------------
 TEST(SerialGetPortsInfoTest, PrintAvailablePorts)
 {
-    char sep[] = ";";
-    char buffer[4096] = {0};
+    constexpr std::string_view separator{";"};
+    std::array<char, 4096> info_buffer{};
 
-    int res = serialGetPortsInfo(buffer, sizeof(buffer), sep);
-    EXPECT_GE(res, 0);
+    int result = serialGetPortsInfo(info_buffer.data(), static_cast<int>(info_buffer.size()), (void*)separator.data());
+    EXPECT_GE(result, 0);
 
-    std::string ports_str(buffer);
+    std::string ports_str(info_buffer.data());
     if (!ports_str.empty())
     {
         std::cout << "\nAvailable serial ports (by-id):\n";
         size_t start = 0;
         while (true)
         {
-            size_t pos = ports_str.find(sep, start);
+            size_t pos = ports_str.find(separator.data(), start);
             std::string token = ports_str.substr(start, pos - start);
             std::cout << "  " << token << "\n";
             if (pos == std::string::npos)
             {
                 break;
             }
-            start = pos + std::strlen(sep);
+            start = pos + std::strlen(separator.data());
         }
     }
     else
@@ -170,10 +169,10 @@ TEST(SerialHelpers, ReadLine)
     const std::string msg = "Hello World\n";
     dev.writeToDevice(msg);
 
-    char buf[64] = {0};
-    int n = serialReadLine(dev.handle, buf, sizeof(buf), 2000);
-    ASSERT_EQ(n, static_cast<int>(msg.size()));
-    ASSERT_EQ(std::string_view(buf, n), msg);
+    std::array<char, 64> read_buffer{};
+    int num_read = serialReadLine(dev.handle, read_buffer.data(), static_cast<int>(read_buffer.size()), 2000);
+    ASSERT_EQ(num_read, static_cast<int>(msg.size()));
+    ASSERT_EQ(std::string_view(read_buffer.data(), num_read), msg);
 }
 
 TEST(SerialHelpers, ReadUntilToken)
@@ -182,11 +181,11 @@ TEST(SerialHelpers, ReadUntilToken)
     const std::string payload = "ABC_OK";
     dev.writeToDevice(payload);
 
-    char buf[64] = {0};
-    const char token[] = "OK";
-    int n = serialReadUntilToken(dev.handle, buf, sizeof(buf), 2000, (void*)token);
-    ASSERT_EQ(n, static_cast<int>(payload.size()));
-    ASSERT_EQ(std::string_view(buf, n), payload);
+    std::array<char, 64> read_buffer{};
+    constexpr std::string_view ok_token{"OK"};
+    int num_read = serialReadUntilToken(dev.handle, read_buffer.data(), static_cast<int>(read_buffer.size()), 2000, (void*)ok_token.data());
+    ASSERT_EQ(num_read, static_cast<int>(payload.size()));
+    ASSERT_EQ(std::string_view(read_buffer.data(), num_read), payload);
 }
 
 TEST(SerialHelpers, Peek)
@@ -195,15 +194,15 @@ TEST(SerialHelpers, Peek)
     const std::string payload = "XYZ";
     dev.writeToDevice(payload);
 
-    char first = 0;
-    int res = serialPeek(dev.handle, &first, 2000);
-    ASSERT_EQ(res, 1);
-    ASSERT_EQ(first, 'X');
+    char first_byte = 0;
+    int peek_result = serialPeek(dev.handle, &first_byte, 2000);
+    ASSERT_EQ(peek_result, 1);
+    ASSERT_EQ(first_byte, 'X');
 
-    char buf[4] = {0};
-    int n = serialRead(dev.handle, buf, 3, 2000, 1);
-    ASSERT_EQ(n, 3);
-    ASSERT_EQ(std::string_view(buf, 3), payload);
+    std::array<char, 4> read_buffer{};
+    int num_read = serialRead(dev.handle, read_buffer.data(), 3, 2000, 1);
+    ASSERT_EQ(num_read, 3);
+    ASSERT_EQ(std::string_view(read_buffer.data(), 3), payload);
 }
 
 TEST(SerialHelpers, Statistics)
@@ -218,9 +217,9 @@ TEST(SerialHelpers, Statistics)
     // Drain and read echo back
     serialDrain(dev.handle);
 
-    char buf[16] = {0};
-    int read_bytes = serialRead(dev.handle, buf, static_cast<int>(payload.size()), 2000, 1);
-    ASSERT_EQ(read_bytes, static_cast<int>(payload.size()));
+    std::array<char, 16> read_buffer{};
+    int bytes_read = serialRead(dev.handle, read_buffer.data(), static_cast<int>(payload.size()), 2000, 1);
+    ASSERT_EQ(bytes_read, static_cast<int>(payload.size()));
 
     ASSERT_EQ(serialGetTxBytes(dev.handle), static_cast<int64_t>(payload.size()));
     ASSERT_EQ(serialGetRxBytes(dev.handle), static_cast<int64_t>(payload.size()));

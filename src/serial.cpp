@@ -30,17 +30,15 @@ namespace
 
 struct SerialPortHandle
 {
-    int fd;
+    int file_descriptor;
     termios original; // keep original settings so we can restore on close
 
-    // --- extensions ---
     int64_t rx_total{0}; // bytes received so far
     int64_t tx_total{0}; // bytes transmitted so far
 
     bool has_peek{false};
     char peek_char{0};
 
-    // Abort flags (set from other threads)
     std::atomic<bool> abort_read{false};
     std::atomic<bool> abort_write{false};
 };
@@ -124,20 +122,20 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
     }
 
     auto port_name = std::string_view{static_cast<const char*>(port)};
-    int fd = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
-    if (fd < 0)
+    int device_descriptor = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
+    if (device_descriptor < 0)
     {
         invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
         return 0;
     }
 
-    auto* handle = new SerialPortHandle{.fd = fd, .original = {}};
+    auto* handle = new SerialPortHandle{.file_descriptor = device_descriptor, .original = {}};
 
     termios tty{};
-    if (tcgetattr(fd, &tty) != 0)
+    if (tcgetattr(device_descriptor, &tty) != 0)
     {
         invokeError(std::to_underlying(StatusCodes::GET_STATE_ERROR));
-        close(fd);
+        close(device_descriptor);
         delete handle;
         return 0;
     }
@@ -205,10 +203,10 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
     tty.c_cc[VMIN] = 0;   // non-blocking by default
     tty.c_cc[VTIME] = 10; // 1s read timeout
 
-    if (tcsetattr(fd, TCSANOW, &tty) != 0)
+    if (tcsetattr(device_descriptor, TCSANOW, &tty) != 0)
     {
         invokeError(std::to_underlying(StatusCodes::SET_STATE_ERROR));
-        close(fd);
+        close(device_descriptor);
         delete handle;
         return 0;
     }
@@ -224,28 +222,29 @@ void serialClose(int64_t handlePtr)
         return;
     }
 
-    tcsetattr(handle->fd, TCSANOW, &handle->original); // restore
-    if (close(handle->fd) != 0)
+    tcsetattr(handle->file_descriptor, TCSANOW, &handle->original); // restore
+    if (close(handle->file_descriptor) != 0)
     {
         invokeError(std::to_underlying(StatusCodes::CLOSE_HANDLE_ERROR));
     }
     delete handle;
 }
 
-static int waitFdReady(int fd, int timeoutMs, bool wantWrite)
+static int waitFdReady(int fileDescriptor, int timeoutMs, bool wantWrite)
 {
     timeoutMs = std::max(timeoutMs, 0);
 
-    fd_set set;
-    FD_ZERO(&set);
-    FD_SET(fd, &set);
+    fd_set descriptor_set;
+    FD_ZERO(&descriptor_set);
+    FD_SET(fileDescriptor, &descriptor_set);
 
-    timeval tv{};
-    tv.tv_sec = timeoutMs / 1000;
-    tv.tv_usec = (timeoutMs % 1000) * 1000;
+    timeval wait_time{};
+    wait_time.tv_sec = timeoutMs / 1000;
+    wait_time.tv_usec = (timeoutMs % 1000) * 1000;
 
-    int res = select(fd + 1, wantWrite ? nullptr : &set, wantWrite ? &set : nullptr, nullptr, &tv);
-    return res; // 0 timeout, -1 error, >0 ready
+    int ready_result =
+        select(fileDescriptor + 1, wantWrite ? nullptr : &descriptor_set, wantWrite ? &descriptor_set : nullptr, nullptr, &wait_time);
+    return ready_result; // 0 timeout, -1 error, >0 ready
 }
 
 int serialRead(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int /*multiplier*/)
@@ -284,24 +283,24 @@ int serialRead(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int
         }
     }
 
-    if (waitFdReady(handle->fd, timeout, false) <= 0)
+    if (waitFdReady(handle->file_descriptor, timeout, false) <= 0)
     {
         return total_copied; // return what we may have already copied (could be 0)
     }
 
-    ssize_t n = read(handle->fd, buffer, bufferSize);
-    if (n < 0)
+    ssize_t bytes_read_system = read(handle->file_descriptor, buffer, bufferSize);
+    if (bytes_read_system < 0)
     {
         invokeError(std::to_underlying(StatusCodes::READ_ERROR));
         return total_copied;
     }
 
-    if (n > 0)
+    if (bytes_read_system > 0)
     {
-        handle->rx_total += n;
+        handle->rx_total += bytes_read_system;
     }
 
-    total_copied += static_cast<int>(n);
+    total_copied += static_cast<int>(bytes_read_system);
 
     if (read_callback != nullptr)
     {
@@ -325,28 +324,28 @@ int serialWrite(int64_t handlePtr, const void* buffer, int bufferSize, int timeo
         return 0;
     }
 
-    if (waitFdReady(handle->fd, timeout, true) <= 0)
+    if (waitFdReady(handle->file_descriptor, timeout, true) <= 0)
     {
         return 0; // timeout or error
     }
 
-    ssize_t n = write(handle->fd, buffer, bufferSize);
-    if (n < 0)
+    ssize_t bytes_written_system = write(handle->file_descriptor, buffer, bufferSize);
+    if (bytes_written_system < 0)
     {
         invokeError(std::to_underlying(StatusCodes::WRITE_ERROR));
         return 0;
     }
 
-    if (n > 0)
+    if (bytes_written_system > 0)
     {
-        handle->tx_total += n;
+        handle->tx_total += bytes_written_system;
     }
 
     if (write_callback != nullptr)
     {
-        write_callback(static_cast<int>(n));
+        write_callback(static_cast<int>(bytes_written_system));
     }
-    return static_cast<int>(n);
+    return static_cast<int>(bytes_written_system);
 }
 
 int serialReadUntil(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int /*multiplier*/, void* untilCharPtr)
@@ -358,23 +357,23 @@ int serialReadUntil(int64_t handlePtr, void* buffer, int bufferSize, int timeout
         return 0;
     }
 
-    char until_char = *static_cast<char*>(untilCharPtr);
+    char until_character = *static_cast<char*>(untilCharPtr);
     int total = 0;
-    auto* buf = static_cast<char*>(buffer);
+    auto* char_buffer = static_cast<char*>(buffer);
 
     while (total < bufferSize)
     {
-        int res = serialRead(handlePtr, buf + total, 1, timeout, 1);
-        if (res <= 0)
+        int read_result = serialRead(handlePtr, char_buffer + total, 1, timeout, 1);
+        if (read_result <= 0)
         {
             break; // timeout or error
         }
-        if (buf[total] == until_char)
+        if (char_buffer[total] == until_character)
         {
             total += 1;
             break;
         }
-        total += res;
+        total += read_result;
     }
 
     if (read_callback != nullptr)
@@ -407,9 +406,9 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
                 continue;
             }
 
-            std::error_code ec;
-            fs::path canonical = fs::canonical(entry.path(), ec);
-            if (ec)
+            std::error_code error_code;
+            fs::path canonical = fs::canonical(entry.path(), error_code);
+            if (error_code)
             {
                 continue; // skip entries we cannot resolve
             }
@@ -451,7 +450,7 @@ void serialClearBufferIn(int64_t handlePtr)
     {
         return;
     }
-    tcflush(handle->fd, TCIFLUSH);
+    tcflush(handle->file_descriptor, TCIFLUSH);
     // reset peek buffer
     handle->has_peek = false;
 }
@@ -463,7 +462,7 @@ void serialClearBufferOut(int64_t handlePtr)
     {
         return;
     }
-    tcflush(handle->fd, TCOFLUSH);
+    tcflush(handle->file_descriptor, TCOFLUSH);
 }
 
 void serialAbortRead(int64_t handlePtr)
@@ -521,9 +520,9 @@ int serialWriteLine(int64_t handlePtr, const void* buffer, int bufferSize, int t
         return written; // error path, propagate
     }
     // Append newline (\n)
-    char nl = '\n';
-    int w_nl = serialWrite(handlePtr, &nl, 1, timeout, 1);
-    if (w_nl != 1)
+    char new_line_char = '\n';
+    int newline_result = serialWrite(handlePtr, &new_line_char, 1, timeout, 1);
+    if (newline_result != 1)
     {
         return written; // newline failed, but payload written
     }
@@ -532,7 +531,7 @@ int serialWriteLine(int64_t handlePtr, const void* buffer, int bufferSize, int t
 
 int serialReadUntilToken(int64_t handlePtr, void* buffer, int bufferSize, int timeout, void* tokenPtr)
 {
-    auto* token_cstr = static_cast<const char*>(tokenPtr);
+    const auto* token_cstr = static_cast<const char*>(tokenPtr);
     if (token_cstr == nullptr)
     {
         invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
@@ -545,22 +544,22 @@ int serialReadUntilToken(int64_t handlePtr, void* buffer, int bufferSize, int ti
         return 0;
     }
 
-    auto* buf = static_cast<char*>(buffer);
+    auto* char_buffer = static_cast<char*>(buffer);
     int total = 0;
     int matched = 0; // how many chars of token matched so far
 
     while (total < bufferSize)
     {
-        int res = serialRead(handlePtr, buf + total, 1, timeout, 1);
-        if (res <= 0)
+        int read_result = serialRead(handlePtr, char_buffer + total, 1, timeout, 1);
+        if (read_result <= 0)
         {
             break; // timeout or error
         }
 
-        char c = buf[total];
+        char current_char = char_buffer[total];
         total += 1;
 
-        if (c == token[matched])
+        if (current_char == token[matched])
         {
             matched += 1;
             if (matched == token_len)
@@ -570,7 +569,7 @@ int serialReadUntilToken(int64_t handlePtr, void* buffer, int bufferSize, int ti
         }
         else
         {
-            matched = (c == token[0]) ? 1 : 0; // restart match search
+            matched = (current_char == token[0]) ? 1 : 0; // restart match search
         }
     }
 
@@ -583,35 +582,33 @@ int serialReadUntilToken(int64_t handlePtr, void* buffer, int bufferSize, int ti
 
 int serialReadFrame(int64_t handlePtr, void* buffer, int bufferSize, int timeout, char startByte, char endByte)
 {
-    auto* buf = static_cast<char*>(buffer);
+    auto* char_buffer = static_cast<char*>(buffer);
     int total = 0;
     bool in_frame = false;
 
     while (total < bufferSize)
     {
-        char byte;
-        int res = serialRead(handlePtr, &byte, 1, timeout, 1);
-        if (res <= 0)
+        char current_byte;
+        int read_result = serialRead(handlePtr, &current_byte, 1, timeout, 1);
+        if (read_result <= 0)
         {
             break; // timeout
         }
 
         if (!in_frame)
         {
-            if (byte == startByte)
+            if (current_byte == startByte)
             {
                 in_frame = true;
-                buf[total++] = byte;
+                char_buffer[total++] = current_byte;
             }
             continue; // ignore bytes until start byte detected
         }
-        else
+
+        char_buffer[total++] = current_byte;
+        if (current_byte == endByte)
         {
-            buf[total++] = byte;
-            if (byte == endByte)
-            {
-                break; // frame finished
-            }
+            break; // frame finished
         }
     }
 
@@ -653,22 +650,22 @@ int serialPeek(int64_t handlePtr, void* outByte, int timeout)
         return 1;
     }
 
-    char c;
-    int res = serialRead(handlePtr, &c, 1, timeout, 1);
-    if (res <= 0)
+    char received_byte;
+    int read_outcome = serialRead(handlePtr, &received_byte, 1, timeout, 1);
+    if (read_outcome <= 0)
     {
         return 0; // nothing available
     }
 
     // Store into peek buffer and undo stats increment
-    handle->peek_char = c;
+    handle->peek_char = received_byte;
     handle->has_peek = true;
     if (handle->rx_total > 0)
     {
         handle->rx_total -= 1; // don't account peek
     }
 
-    *static_cast<char*>(outByte) = c;
+    *static_cast<char*>(outByte) = received_byte;
     return 1;
 }
 
@@ -680,5 +677,5 @@ int serialDrain(int64_t handlePtr)
         invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
         return 0;
     }
-    return (tcdrain(handle->fd) == 0) ? 1 : 0;
+    return (tcdrain(handle->file_descriptor) == 0) ? 1 : 0;
 }
