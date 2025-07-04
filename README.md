@@ -64,16 +64,72 @@ lib.close();
 
 ## 3  C API reference
 
-| Function | Description |
-|----------|-------------|
-| `intptr_t serialOpen(const char* dev, int baud, int bits, int parity, int stop)` | Open a device and return a handle. |
-| `void serialClose(intptr_t handle)` | Close the port. |
-| `int serialRead(...)` | Read bytes with timeout. |
-| `int serialWrite(...)` | Write bytes with timeout. |
-| `int serialGetPortsInfo(char* buffer, int len, const char* sep)` | List ports under `/dev/serial/by-id`. |
-| `void serialOnError(void (*)(int))` | Register an error callback. |
-| *(others in `serial.h`)* |
+Below is a condensed overview of the most relevant functions. See `serial.h` for full
+signatures and additional helpers.
 
-Return values ≤ 0 indicate error codes defined in `status_codes.h`.
+### Connection
+* `serialOpen(...)` – open a serial device and return a handle
+* `serialClose(handle)` – close the device
+
+### I/O
+* `serialRead(...)` / `serialWrite(...)` – basic read/write with timeout
+* `serialReadUntil(...)` – read until a specific char is encountered (inclusive)
+* `serialReadLine(...)` – read until `\n`
+* `serialWriteLine(...)` – write buffer and append `\n`
+* `serialReadUntilToken(...)` – read until a string token is encountered
+* `serialReadFrame(...)` – read a frame delimited by start & end bytes
+
+### Helpers
+* `serialPeek(...)` – look at the next byte without consuming it
+* `serialDrain(...)` – wait until all TX bytes are sent
+* `serialClearBufferIn/Out(...)` – drop buffered bytes
+* `serialAbortRead/Write(...)` – abort pending I/O operations
+
+### Statistics
+* `serialGetRxBytes(handle)` / `serialGetTxBytes(handle)` – cumulative RX / TX byte counters
+
+### Enumeration & autodetect
+* `serialGetPortsInfo(...)` – list available ports under `/dev/serial/by-id`
+
+### Callbacks
+* `serialOnError(func)` – error callback
+* `serialOnRead(func)` – read callback (bytes read)
+* `serialOnWrite(func)` – write callback (bytes written)
+
+Return values ≤ 0 correspond to error codes defined in `status_codes.h`.
+
+---
+
+## 4  Ready-made Deno examples
+
+Two runnable scripts live in `examples/` and require only Deno plus the compiled
+shared library.
+
+- **serial_echo.ts** – Minimal echo test that lists available ports, opens the
+  first one and verifies that the micro-controller echoes the sent string.
+  Run it with:
+  ```bash
+  deno run --allow-ffi --allow-read examples/serial_echo.ts \
+           --lib ./build/libCPP-Unix-Bindings.so \
+           --port /dev/ttyUSB0
+  ```
+
+- **serial_advanced.ts** – Shows the high-level helpers (`serialWriteLine`,
+  `serialReadLine`, `serialPeek`, `statistics`, `serialDrain`). It sends three
+  lines and then prints the TX/RX counters.
+  ```bash
+  deno run --allow-ffi --allow-read examples/serial_advanced.ts \
+           --lib ./build/libCPP-Unix-Bindings.so \
+           --port /dev/ttyUSB0
+  ```
+
+Notes:
+1. `--lib` defaults to `./build/libCPP-Unix-Bindings.so`; pass a custom path if
+you installed the library elsewhere.
+2. `--port` defaults to `/dev/ttyUSB0`; adjust if your board shows up under a
+different device (e.g. `/dev/ttyACM0`).
+3. On most Arduino boards opening the port toggles DTR and triggers a reset.
+   Both scripts therefore wait ~2 s after opening the device before sending the
+   first command.
 
 ---

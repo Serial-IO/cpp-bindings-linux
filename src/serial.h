@@ -41,6 +41,24 @@ extern "C"
     MODULE_API void serialOnRead(void (*func)(int bytes));
     MODULE_API void serialOnWrite(void (*func)(int bytes));
 
+    MODULE_API int serialReadLine(int64_t handle, void* buffer, int bufferSize, int timeout /*ms*/);
+
+    MODULE_API int serialWriteLine(int64_t handle, const void* buffer, int bufferSize, int timeout /*ms*/);
+
+    MODULE_API int serialReadUntilToken(int64_t handle, void* buffer, int bufferSize, int timeout /*ms*/, void* token);
+
+    MODULE_API int serialReadFrame(int64_t handle, void* buffer, int bufferSize, int timeout /*ms*/, char startByte, char endByte);
+
+    // Byte statistics
+    MODULE_API int64_t serialGetRxBytes(int64_t handle);
+    MODULE_API int64_t serialGetTxBytes(int64_t handle);
+
+    // Peek next byte without consuming
+    MODULE_API int serialPeek(int64_t handle, void* outByte, int timeout /*ms*/);
+
+    // Drain pending TX bytes (wait until sent)
+    MODULE_API int serialDrain(int64_t handle);
+
 #ifdef __cplusplus
 }
 #endif
