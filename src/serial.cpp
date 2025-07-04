@@ -4,9 +4,10 @@
 
 #include <algorithm>
 #include <cstring>
-#include <dirent.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <string>
+#include <string_view>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
@@ -110,8 +111,8 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
         return 0;
     }
 
-    const char* port_name = static_cast<const char*>(port);
-    int fd = open(port_name, O_RDWR | O_NOCTTY | O_SYNC);
+    auto port_name = std::string_view{static_cast<const char*>(port)};
+    int fd = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0)
     {
         invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
@@ -326,34 +327,48 @@ int serialReadUntil(int64_t handlePtr, void* buffer, int bufferSize, int timeout
 
 int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
 {
-    const char* sep = static_cast<const char*>(separatorPtr);
+    auto sep = std::string_view{static_cast<const char*>(separatorPtr)};
     std::string result;
 
-    DIR* dir = opendir("/dev/serial/by-id");
-    if (dir == nullptr)
+    namespace fs = std::filesystem;
+
+    const fs::path by_id_dir{"/dev/serial/by-id"};
+    if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))
     {
         invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR));
         return 0;
     }
-    struct dirent* entry = nullptr;
-    while ((entry = readdir(dir)) != nullptr)
+
+    try
     {
-        if (entry->d_type == DT_LNK)
+        for (const auto& entry : fs::directory_iterator{by_id_dir})
         {
-            std::string symlink_path = std::string("/dev/serial/by-id/") + entry->d_name;
-            char canonical_path[PATH_MAX];
-            if (realpath(symlink_path.c_str(), canonical_path) != nullptr)
+            if (!entry.is_symlink())
             {
-                result += canonical_path;
-                result += sep;
+                continue;
             }
+
+            std::error_code ec;
+            fs::path canonical = fs::canonical(entry.path(), ec);
+            if (ec)
+            {
+                continue; // skip entries we cannot resolve
+            }
+
+            result += canonical.string();
+            result += sep;
         }
     }
-    closedir(dir);
+    catch (const fs::filesystem_error&)
+    {
+        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR));
+        return 0;
+    }
 
     if (!result.empty())
     {
-        result.erase(result.size() - std::strlen(sep)); // remove trailing sep
+        // Remove the trailing separator
+        result.erase(result.size() - sep.size());
     }
 
     if (static_cast<int>(result.size()) + 1 > bufferSize)
@@ -363,7 +378,7 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
     }
 
     std::memcpy(buffer, result.c_str(), result.size() + 1);
-    return (result.empty() ? 0 : 1); // number of ports not easily counted here
+    return result.empty() ? 0 : 1; // number of ports not easily counted here
 }
 
 // Currently stubbed helpers (no-ops)
