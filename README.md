@@ -1,7 +1,7 @@
-# CPP-Unix-Bindings
+# cpp_unix_bindings
 
 A compact C++23 library for talking to serial devices on Linux (e.g. Arduino).  
-The project builds a **shared library `libCPP-Unix-Bindings.so`** that can be used via
+The project builds a **shared library `libcpp_unix_bindings.so`** that can be used via
 Deno's native FFI.
 
 ---
@@ -21,7 +21,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 
 # The resulting library will be located at
-#   build/libCPP-Unix-Bindings.so
+#   build/libcpp_unix_bindings.so
 ```
 
 > Because `CMAKE_EXPORT_COMPILE_COMMANDS` is enabled, the build also generates a
@@ -36,7 +36,7 @@ Deno ships with a first-class FFI API.
 
 ```ts
 // serial_deno.ts
-const lib = Deno.dlopen('./build/libCPP-Unix-Bindings.so', {
+const lib = Deno.dlopen('./build/libcpp_unix_bindings.so', {
   serialOpen: { parameters: [ 'buffer', 'i32', 'i32', 'i32', 'i32' ], result: 'pointer' },
   serialClose: { parameters: [ 'pointer' ], result: 'void' },
   serialRead: { parameters: [ 'pointer', 'buffer', 'i32', 'i32', 'i32' ], result: 'i32' },
@@ -110,7 +110,7 @@ shared library.
   Run it with:
   ```bash
   deno run --allow-ffi --allow-read examples/serial_echo.ts \
-           --lib ./build/libCPP-Unix-Bindings.so \
+           --lib ./build/libcpp_unix_bindings.so \
            --port /dev/ttyUSB0
   ```
 
@@ -119,12 +119,12 @@ shared library.
   lines and then prints the TX/RX counters.
   ```bash
   deno run --allow-ffi --allow-read examples/serial_advanced.ts \
-           --lib ./build/libCPP-Unix-Bindings.so \
+           --lib ./build/libcpp_unix_bindings.so \
            --port /dev/ttyUSB0
   ```
 
 Notes:
-1. `--lib` defaults to `./build/libCPP-Unix-Bindings.so`; pass a custom path if
+1. `--lib` defaults to `./build/libcpp_unix_bindings.so`; pass a custom path if
 you installed the library elsewhere.
 2. `--port` defaults to `/dev/ttyUSB0`; adjust if your board shows up under a
 different device (e.g. `/dev/ttyACM0`).

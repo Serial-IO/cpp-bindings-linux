@@ -4,7 +4,7 @@ set(VERSION_MAJOR 0)
 set(VERSION_MINOR 2)
 set(VERSION_PATCH 0)
 
-set(PROJECT_N CPP-Unix-Bindings)
+set(PROJECT_N cpp_unix_bindings)
 project(${PROJECT_N} VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 # Generate compile_commands.json for clang-based tooling (clangd / clang-tidy)

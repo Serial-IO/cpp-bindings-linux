@@ -1,4 +1,4 @@
-// Simple integration test for CPP-Unix-Bindings
+// Simple integration test for cpp_unix_bindings
 // ------------------------------------------------
 // This executable opens the given serial port, sends a test
 // string and verifies that the same string is echoed back

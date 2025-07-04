@@ -1,5 +1,5 @@
 // @ts-nocheck
-// deno run --allow-ffi --allow-read examples/serial_advanced.ts --lib ./build/libCPP-Unix-Bindings.so --port /dev/ttyUSB0
+// deno run --allow-ffi --allow-read examples/serial_advanced.ts --lib ./build/libcpp_unix_bindings.so --port /dev/ttyUSB0
 
 /*
    Advanced Deno example showcasing the extended C-API helpers:
@@ -17,7 +17,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-    const opts: CliOptions = { lib: "./build/libCPP-Unix-Bindings.so" };
+    const opts: CliOptions = { lib: "./build/libcpp_unix_bindings.so" };
 
     for (let i = 0; i < Deno.args.length; ++i) {
         const arg = Deno.args[i];

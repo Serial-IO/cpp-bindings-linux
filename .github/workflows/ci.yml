@@ -1,4 +1,4 @@
-name: Build & Release CPP-Unix-Bindings
+name: Build & Release cpp_unix_bindings
 
 on:
   push:
@@ -34,12 +34,12 @@ jobs:
       - name: Upload library artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libCPP-Unix-Bindings
-          path: build/libCPP-Unix-Bindings.so
+          name: libcpp_unix_bindings
+          path: build/libcpp_unix_bindings.so
           retention-days: 14
 
       - name: Attach library to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: build/libCPP-Unix-Bindings.so 
+          files: build/libcpp_unix_bindings.so 

@@ -7,7 +7,7 @@ interface CliOptions {
 }
 
 function parseArgs(): CliOptions {
-    const opts: CliOptions = { lib: "./build/libCPP-Unix-Bindings.so" };
+    const opts: CliOptions = { lib: "./build/libcpp_unix_bindings.so" };
 
     for (let i = 0; i < Deno.args.length; ++i) {
         const arg = Deno.args[i];
