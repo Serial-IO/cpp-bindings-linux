@@ -24,7 +24,7 @@ extern "C"
 
     MODULE_API int serialWrite(int64_t handle, const void* buffer, int bufferSize, int timeout, int multiplier);
 
-    MODULE_API int serialGetPortsInfo(void (*function)(const char* port,
+    MODULE_API int serialGetPortsInfo(void (*callback)(const char* port,
                                                        const char* path,
                                                        const char* manufacturer,
                                                        const char* serialNumber,

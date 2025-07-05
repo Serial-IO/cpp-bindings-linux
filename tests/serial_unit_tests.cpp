@@ -5,7 +5,6 @@
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
-#include <cstring>
 #include <fcntl.h>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -89,20 +88,20 @@ TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
     static int callback_count = 0;
     callback_count = 0;
 
-    auto callbackFunc = [](const char* /*port*/,
-                           const char* /*path*/,
-                           const char* /*manufacturer*/,
-                           const char* /*serialNumber*/,
-                           const char* /*pnpId*/,
-                           const char* /*locationId*/,
-                           const char* /*productId*/,
-                           const char* /*vendorId*/) { ++callback_count; };
+    auto callback_func = [](const char* /*port*/,
+                            const char* /*path*/,
+                            const char* /*manufacturer*/,
+                            const char* /*serialNumber*/,
+                            const char* /*pnpId*/,
+                            const char* /*locationId*/,
+                            const char* /*productId*/,
+                            const char* /*vendorId*/) { ++callback_count; };
 
     std::atomic<int> err_code{0};
     g_err_ptr = &err_code;
     serialOnError(errorCallback);
 
-    int result = serialGetPortsInfo(callbackFunc);
+    int result = serialGetPortsInfo(callback_func);
 
     // result should match the number of times our callback ran
     EXPECT_EQ(result, callback_count);
