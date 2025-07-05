@@ -18,9 +18,9 @@
 // -----------------------------------------------------------------------------
 // Global callback function pointers (default nullptr)
 // -----------------------------------------------------------------------------
-void (*error_callback)(int) = nullptr;
-void (*read_callback)(int) = nullptr;
-void (*write_callback)(int) = nullptr;
+void (*on_error_callback)(int errorCode, const char* message) = nullptr;
+void (*on_read_callback)(int bytes) = nullptr;
+void (*on_write_callback)(int bytes) = nullptr;
 
 // -----------------------------------------------------------------------------
 // Internal helpers & types
@@ -35,9 +35,6 @@ struct SerialPortHandle
 
     int64_t rx_total{0}; // bytes received so far
     int64_t tx_total{0}; // bytes transmitted so far
-
-    bool has_peek{false};
-    char peek_char{0};
 
     std::atomic<bool> abort_read{false};
     std::atomic<bool> abort_write{false};
@@ -99,11 +96,11 @@ auto to_speed_t(int baud) -> speed_t
     }
 }
 
-inline void invokeError(int code)
+inline void invokeError(int code, const char* message)
 {
-    if (error_callback != nullptr)
+    if (on_error_callback != nullptr)
     {
-        error_callback(code);
+        on_error_callback(code, message);
     }
 }
 
@@ -117,7 +114,7 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
 {
     if (port == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialOpen: Invalid handle");
         return 0;
     }
 
@@ -125,7 +122,7 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
     int device_descriptor = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
     if (device_descriptor < 0)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialOpen: Failed to open serial port");
         return 0;
     }
 
@@ -134,7 +131,7 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
     termios tty{};
     if (tcgetattr(device_descriptor, &tty) != 0)
     {
-        invokeError(std::to_underlying(StatusCodes::GET_STATE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::GET_STATE_ERROR), "serialOpen: Failed to get serial attributes");
         close(device_descriptor);
         delete handle;
         return 0;
@@ -205,7 +202,7 @@ intptr_t serialOpen(void* port, int baudrate, int dataBits, int parity, int stop
 
     if (tcsetattr(device_descriptor, TCSANOW, &tty) != 0)
     {
-        invokeError(std::to_underlying(StatusCodes::SET_STATE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::SET_STATE_ERROR), "serialOpen: Failed to set serial attributes");
         close(device_descriptor);
         delete handle;
         return 0;
@@ -225,7 +222,7 @@ void serialClose(int64_t handlePtr)
     tcsetattr(handle->file_descriptor, TCSANOW, &handle->original); // restore
     if (close(handle->file_descriptor) != 0)
     {
-        invokeError(std::to_underlying(StatusCodes::CLOSE_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::CLOSE_HANDLE_ERROR), "serialClose: Failed to close serial port");
     }
     delete handle;
 }
@@ -252,7 +249,7 @@ int serialRead(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialRead: Invalid handle");
         return 0;
     }
 
@@ -264,25 +261,6 @@ int serialRead(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int
 
     int total_copied = 0;
 
-    // First deliver byte from internal peek buffer if present
-    if (handle->has_peek && bufferSize > 0)
-    {
-        static_cast<char*>(buffer)[0] = handle->peek_char;
-        handle->has_peek = false;
-        handle->rx_total += 1;
-        total_copied = 1;
-        buffer = static_cast<char*>(buffer) + 1;
-        bufferSize -= 1;
-        if (bufferSize == 0)
-        {
-            if (read_callback != nullptr)
-            {
-                read_callback(total_copied);
-            }
-            return total_copied;
-        }
-    }
-
     if (waitFdReady(handle->file_descriptor, timeout, false) <= 0)
     {
         return total_copied; // return what we may have already copied (could be 0)
@@ -291,7 +269,7 @@ int serialRead(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int
     ssize_t bytes_read_system = read(handle->file_descriptor, buffer, bufferSize);
     if (bytes_read_system < 0)
     {
-        invokeError(std::to_underlying(StatusCodes::READ_ERROR));
+        invokeError(std::to_underlying(StatusCodes::READ_ERROR), "serialRead: Read error");
         return total_copied;
     }
 
@@ -302,9 +280,9 @@ int serialRead(int64_t handlePtr, void* buffer, int bufferSize, int timeout, int
 
     total_copied += static_cast<int>(bytes_read_system);
 
-    if (read_callback != nullptr)
+    if (on_read_callback != nullptr)
     {
-        read_callback(total_copied);
+        on_read_callback(total_copied);
     }
     return total_copied;
 }
@@ -314,7 +292,7 @@ int serialWrite(int64_t handlePtr, const void* buffer, int bufferSize, int timeo
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialWrite: Invalid handle");
         return 0;
     }
 
@@ -332,7 +310,7 @@ int serialWrite(int64_t handlePtr, const void* buffer, int bufferSize, int timeo
     ssize_t bytes_written_system = write(handle->file_descriptor, buffer, bufferSize);
     if (bytes_written_system < 0)
     {
-        invokeError(std::to_underlying(StatusCodes::WRITE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::WRITE_ERROR), "serialWrite: Write error");
         return 0;
     }
 
@@ -341,9 +319,9 @@ int serialWrite(int64_t handlePtr, const void* buffer, int bufferSize, int timeo
         handle->tx_total += bytes_written_system;
     }
 
-    if (write_callback != nullptr)
+    if (on_write_callback != nullptr)
     {
-        write_callback(static_cast<int>(bytes_written_system));
+        on_write_callback(static_cast<int>(bytes_written_system));
     }
     return static_cast<int>(bytes_written_system);
 }
@@ -353,7 +331,7 @@ int serialReadUntil(int64_t handlePtr, void* buffer, int bufferSize, int timeout
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialReadUntil: Invalid handle");
         return 0;
     }
 
@@ -376,9 +354,9 @@ int serialReadUntil(int64_t handlePtr, void* buffer, int bufferSize, int timeout
         total += read_result;
     }
 
-    if (read_callback != nullptr)
+    if (on_read_callback != nullptr)
     {
-        read_callback(total);
+        on_read_callback(total);
     }
     return total;
 }
@@ -393,7 +371,7 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
     const fs::path by_id_dir{"/dev/serial/by-id"};
     if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))
     {
-        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR));
+        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
         return 0;
     }
 
@@ -419,7 +397,7 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
     }
     catch (const fs::filesystem_error&)
     {
-        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR));
+        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
         return 0;
     }
 
@@ -431,7 +409,7 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
 
     if (static_cast<int>(result.size()) + 1 > bufferSize)
     {
-        invokeError(std::to_underlying(StatusCodes::BUFFER_ERROR));
+        invokeError(std::to_underlying(StatusCodes::BUFFER_ERROR), "serialGetPortsInfo: Buffer too small");
         return 0;
     }
 
@@ -448,11 +426,10 @@ void serialClearBufferIn(int64_t handlePtr)
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialClearBufferIn: Invalid handle");
         return;
     }
     tcflush(handle->file_descriptor, TCIFLUSH);
-    // reset peek buffer
-    handle->has_peek = false;
 }
 
 void serialClearBufferOut(int64_t handlePtr)
@@ -460,6 +437,7 @@ void serialClearBufferOut(int64_t handlePtr)
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialClearBufferOut: Invalid handle");
         return;
     }
     tcflush(handle->file_descriptor, TCOFLUSH);
@@ -470,6 +448,7 @@ void serialAbortRead(int64_t handlePtr)
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialAbortRead: Invalid handle");
         return;
     }
     handle->abort_read = true;
@@ -480,6 +459,7 @@ void serialAbortWrite(int64_t handlePtr)
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialAbortWrite: Invalid handle");
         return;
     }
     handle->abort_write = true;
@@ -488,17 +468,17 @@ void serialAbortWrite(int64_t handlePtr)
 // -----------------------------------------------------------------------------
 
 // Callback registration
-void serialOnError(void (*func)(int code))
+void serialOnError(void (*func)(int code, const char* message))
 {
-    error_callback = func;
+    on_error_callback = func;
 }
 void serialOnRead(void (*func)(int bytes))
 {
-    read_callback = func;
+    on_read_callback = func;
 }
 void serialOnWrite(void (*func)(int bytes))
 {
-    write_callback = func;
+    on_write_callback = func;
 }
 
 // -----------------------------------------------------------------------------
@@ -529,24 +509,24 @@ int serialWriteLine(int64_t handlePtr, const void* buffer, int bufferSize, int t
     return written + 1;
 }
 
-int serialReadUntilToken(int64_t handlePtr, void* buffer, int bufferSize, int timeout, void* tokenPtr)
+int serialReadUntilSequence(int64_t handlePtr, void* buffer, int bufferSize, int timeout, void* sequencePtr)
 {
-    const auto* token_cstr = static_cast<const char*>(tokenPtr);
-    if (token_cstr == nullptr)
+    const auto* sequence_cstr = static_cast<const char*>(sequencePtr);
+    if (sequence_cstr == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialReadUntilSequence: Invalid sequence");
         return 0;
     }
-    std::string token{token_cstr};
-    int token_len = static_cast<int>(token.size());
-    if (token_len == 0 || bufferSize < token_len)
+    std::string sequence{sequence_cstr};
+    int sequence_len = static_cast<int>(sequence.size());
+    if (sequence_len == 0 || bufferSize < sequence_len)
     {
         return 0;
     }
 
     auto* char_buffer = static_cast<char*>(buffer);
     int total = 0;
-    int matched = 0; // how many chars of token matched so far
+    int matched = 0; // how many chars of sequence matched so far
 
     while (total < bufferSize)
     {
@@ -559,23 +539,23 @@ int serialReadUntilToken(int64_t handlePtr, void* buffer, int bufferSize, int ti
         char current_char = char_buffer[total];
         total += 1;
 
-        if (current_char == token[matched])
+        if (current_char == sequence[matched])
         {
             matched += 1;
-            if (matched == token_len)
+            if (matched == sequence_len)
             {
-                break; // token fully matched
+                break; // sequence fully matched
             }
         }
         else
         {
-            matched = (current_char == token[0]) ? 1 : 0; // restart match search
+            matched = (current_char == sequence[0]) ? 1 : 0; // restart match search
         }
     }
 
-    if (read_callback != nullptr)
+    if (on_read_callback != nullptr)
     {
-        read_callback(total);
+        on_read_callback(total);
     }
     return total;
 }
@@ -615,7 +595,7 @@ int serialReadFrame(int64_t handlePtr, void* buffer, int bufferSize, int timeout
     return total;
 }
 
-int64_t serialGetRxBytes(int64_t handlePtr)
+int64_t serialInBytesTotal(int64_t handlePtr)
 {
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
@@ -625,7 +605,7 @@ int64_t serialGetRxBytes(int64_t handlePtr)
     return handle->rx_total;
 }
 
-int64_t serialGetTxBytes(int64_t handlePtr)
+int64_t serialOutBytesTotal(int64_t handlePtr)
 {
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
@@ -635,38 +615,46 @@ int64_t serialGetTxBytes(int64_t handlePtr)
     return handle->tx_total;
 }
 
-int serialPeek(int64_t handlePtr, void* outByte, int timeout)
+// Bytes currently queued in the driver/OS buffers --------------------------------
+int serialInBytesWaiting(int64_t handlePtr)
 {
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
-    if (handle == nullptr || outByte == nullptr)
+    if (handle == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialInBytesWaiting: Invalid handle");
         return 0;
     }
 
-    if (handle->has_peek)
+    int bytes_available = 0;
+    if (ioctl(handle->file_descriptor, FIONREAD, &bytes_available) == -1)
     {
-        *static_cast<char*>(outByte) = handle->peek_char;
-        return 1;
+        invokeError(std::to_underlying(StatusCodes::GET_STATE_ERROR), "serialInBytesWaiting: Failed to get state");
+        return 0;
+    }
+    return bytes_available;
+}
+
+int serialOutBytesWaiting(int64_t handlePtr)
+{
+    auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
+    if (handle == nullptr)
+    {
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialOutBytesWaiting: Invalid handle");
+        return 0;
     }
 
-    char received_byte;
-    int read_outcome = serialRead(handlePtr, &received_byte, 1, timeout, 1);
-    if (read_outcome <= 0)
+    int bytes_queued = 0;
+#ifdef TIOCOUTQ
+    if (ioctl(handle->file_descriptor, TIOCOUTQ, &bytes_queued) == -1)
     {
-        return 0; // nothing available
+        invokeError(std::to_underlying(StatusCodes::GET_STATE_ERROR), "serialOutBytesWaiting: Failed to get state");
+        return 0;
     }
-
-    // Store into peek buffer and undo stats increment
-    handle->peek_char = received_byte;
-    handle->has_peek = true;
-    if (handle->rx_total > 0)
-    {
-        handle->rx_total -= 1; // don't account peek
-    }
-
-    *static_cast<char*>(outByte) = received_byte;
-    return 1;
+#else
+    // TIOCOUTQ not available on this platform – fallback: 0
+    bytes_queued = 0;
+#endif
+    return bytes_queued;
 }
 
 int serialDrain(int64_t handlePtr)
@@ -674,7 +662,7 @@ int serialDrain(int64_t handlePtr)
     auto* handle = reinterpret_cast<SerialPortHandle*>(handlePtr);
     if (handle == nullptr)
     {
-        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR));
+        invokeError(std::to_underlying(StatusCodes::INVALID_HANDLE_ERROR), "serialDrain: Invalid handle");
         return 0;
     }
     return (tcdrain(handle->file_descriptor) == 0) ? 1 : 0;
