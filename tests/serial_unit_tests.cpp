@@ -134,10 +134,6 @@ TEST(SerialGetPortsInfoTest, PrintAvailablePorts)
     {
         std::cout << "\nNo serial devices found in /dev/serial/by-id\n";
     }
-    else
-    {
-        std::cout << "\nAvailable serial ports (by-id):\n";
-    }
 }
 
 // --------------------------- Stubbed no-op APIs ----------------------------
