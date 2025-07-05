@@ -56,43 +56,100 @@ const dylib = Deno.dlopen(
             parameters: ["pointer", "pointer", "i32", "i32", "i32", "pointer"],
             result: "i32",
         },
-        serialGetPortsInfo: { parameters: ["pointer", "i32", "pointer"], result: "i32" },
+        serialGetPortsInfo: { parameters: ["function"], result: "i32" },
     } as const,
 );
 
 // -----------------------------------------------------------------------------
-// 1. List available ports
+// 1. List available ports with extended info
 // -----------------------------------------------------------------------------
-const sepBuf = cString(";");
-const portsBuf = new Uint8Array(4096);
-dylib.symbols.serialGetPortsInfo(
-    pointer(portsBuf),
-    portsBuf.length,
-    pointer(sepBuf),
-);
 
-const cPortsStr = decoder.decode(portsBuf.subarray(0, portsBuf.indexOf(0)));
-const ports = cPortsStr ? cPortsStr.split(";") : [];
-console.log("Available ports:");
-for (const p of ports) {
-    console.log(" •", p);
+// Storage for callback results
+interface PortInfo {
+    port: string;
+    path: string;
+    manufacturer: string;
+    serial: string;
+    pnpId: string;
+    locationId: string;
+    productId: string;
+    vendorId: string;
 }
-if (ports.length === 0) {
-    console.error("No serial ports found (ttyUSB). Exiting.");
+
+const portsInfo: PortInfo[] = [];
+
+// Helper to read C string from pointer
+function cstr(ptr: Deno.PointerValue): string {
+    if (ptr === 0n) return "";
+    return Deno.UnsafePointerView.getCString(ptr);
+}
+
+const portInfoCallback = new Deno.UnsafeCallback({
+    parameters: [
+        "pointer", // port
+        "pointer", // path
+        "pointer", // manufacturer
+        "pointer", // serialNumber
+        "pointer", // pnpId
+        "pointer", // locationId
+        "pointer", // productId
+        "pointer", // vendorId
+    ],
+    result: "void",
+} as const, (
+    portPtr,
+    pathPtr,
+    manufacturerPtr,
+    serialPtr,
+    pnpPtr,
+    locationPtr,
+    productPtr,
+    vendorPtr,
+) => {
+    portsInfo.push({
+        port: cstr(portPtr),
+        path: cstr(pathPtr),
+        manufacturer: cstr(manufacturerPtr),
+        serial: cstr(serialPtr),
+        pnpId: cstr(pnpPtr),
+        locationId: cstr(locationPtr),
+        productId: cstr(productPtr),
+        vendorId: cstr(vendorPtr),
+    });
+});
+
+const numPorts = dylib.symbols.serialGetPortsInfo(portInfoCallback.pointer);
+
+if (numPorts === 0) {
+    console.error("No serial ports found. Exiting.");
+    portInfoCallback.close();
     dylib.close();
     Deno.exit(1);
+}
+
+console.log("Available ports:");
+for (const p of portsInfo) {
+    console.log(` • ${p.port}`);
+    console.log(`     alias        : ${p.path}`);
+    if (p.manufacturer) console.log(`     manufacturer : ${p.manufacturer}`);
+    if (p.serial) console.log(`     serial       : ${p.serial}`);
+    if (p.vendorId) console.log(`     vendorId     : ${p.vendorId}`);
+    if (p.productId) console.log(`     productId    : ${p.productId}`);
+    if (p.pnpId) console.log(`     pnpId        : ${p.pnpId}`);
+    if (p.locationId) console.log(`     locationId   : ${p.locationId}`);
 }
 
 // -----------------------------------------------------------------------------
 // 2. Echo test on selected port
 // -----------------------------------------------------------------------------
-const portPath = cliPort ?? ports[0];
+const portPath = cliPort ?? portsInfo[0].port;
 console.log(`\nUsing port: ${portPath}`);
 
 const portBuf = cString(portPath);
 const handle = dylib.symbols.serialOpen(pointer(portBuf), 115200, 8, 0, 0);
 if (handle === null) {
     console.error("Failed to open port!");
+    portInfoCallback.close();
     dylib.close();
     Deno.exit(1);
 }
@@ -106,6 +163,7 @@ const written = dylib.symbols.serialWrite(handle, pointer(msgBuf), msgBuf.length
 if (written !== msgBuf.length) {
     console.error(`Write failed (wrote ${written}/${msgBuf.length})`);
     dylib.symbols.serialClose(handle);
+    portInfoCallback.close();
     dylib.close();
     Deno.exit(1);
 }
@@ -117,6 +175,7 @@ const read = dylib.symbols.serialReadUntil(handle, pointer(readBuf), readBuf.len
 if (read <= 0) {
     console.error("Read failed or timed out.");
     dylib.symbols.serialClose(handle);
+    portInfoCallback.close();
     dylib.close();
     Deno.exit(1);
 }
@@ -131,4 +190,5 @@ if (echo === msg) {
 }
 
 dylib.symbols.serialClose(handle);
+portInfoCallback.close();
 dylib.close(); 

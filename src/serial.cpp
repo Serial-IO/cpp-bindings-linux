@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <sys/ioctl.h>
@@ -361,11 +362,15 @@ int serialReadUntil(int64_t handlePtr, void* buffer, int bufferSize, int timeout
     return total;
 }
 
-int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
+int serialGetPortsInfo(void (*callback)(const char* port,
+                                        const char* path,
+                                        const char* manufacturer,
+                                        const char* serialNumber,
+                                        const char* pnpId,
+                                        const char* locationId,
+                                        const char* productId,
+                                        const char* vendorId))
 {
-    auto sep = std::string_view{static_cast<const char*>(separatorPtr)};
-    std::string result;
-
     namespace fs = std::filesystem;
 
     const fs::path by_id_dir{"/dev/serial/by-id"};
@@ -374,6 +379,20 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
         invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
         return 0;
     }
+
+    int count = 0;
+
+    auto read_attr = [](const fs::path& p, const std::string& attr) -> std::string
+    {
+        std::ifstream file(p / attr);
+        if (!file.is_open())
+        {
+            return "";
+        }
+        std::string value;
+        std::getline(file, value);
+        return value;
+    };
 
     try
     {
@@ -384,15 +403,84 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
                 continue;
             }
 
-            std::error_code error_code;
-            fs::path canonical = fs::canonical(entry.path(), error_code);
-            if (error_code)
+            std::error_code ec;
+            fs::path canonical = fs::canonical(entry.path(), ec);
+            if (ec)
             {
                 continue; // skip entries we cannot resolve
             }
 
-            result += canonical.string();
-            result += sep;
+            // Canonical port (e.g., /dev/ttyUSB0)
+            const std::string port_path = canonical.string();
+            const std::string symlink_path = entry.path().string();
+
+            // Attempt to resolve sysfs USB device directory
+            // /sys/class/tty/ttyUSB0/device -> ../../../<usb_device>/...
+            fs::path tty_sys = fs::path{"/sys/class/tty"} / canonical.filename() / "device";
+            tty_sys = fs::canonical(tty_sys, ec);
+            if (ec)
+            {
+                // Not fatal – still report port with empty attributes
+                tty_sys.clear();
+            }
+
+            fs::path usb_device_dir;
+            if (!tty_sys.empty())
+            {
+                // Climb up until we find idVendor attribute
+                fs::path cur = tty_sys;
+                while (cur.has_relative_path() && cur != cur.root_path())
+                {
+                    if (fs::exists(cur / "idVendor"))
+                    {
+                        usb_device_dir = cur;
+                        break;
+                    }
+                    cur = cur.parent_path();
+                }
+            }
+
+            std::string manufacturer;
+            std::string serial_number;
+            std::string vendor_id;
+            std::string product_id;
+            std::string pnp_id;
+            std::string location_id;
+
+            if (!usb_device_dir.empty())
+            {
+                manufacturer = read_attr(usb_device_dir, "manufacturer");
+                serial_number = read_attr(usb_device_dir, "serial");
+                vendor_id = read_attr(usb_device_dir, "idVendor");
+                product_id = read_attr(usb_device_dir, "idProduct");
+
+                if (!vendor_id.empty() && !product_id.empty())
+                {
+                    pnp_id = "USB\\VID_" + vendor_id + "&PID_" + product_id;
+                }
+
+                // locationId: busnum-portpath (best effort)
+                std::string busnum = read_attr(usb_device_dir, "busnum");
+                std::string devpath = read_attr(usb_device_dir, "devpath");
+                if (!busnum.empty() && !devpath.empty())
+                {
+                    location_id = busnum + ":" + devpath;
+                }
+            }
+
+            if (callback != nullptr)
+            {
+                callback(port_path.c_str(),
+                         symlink_path.c_str(),
+                         manufacturer.c_str(),
+                         serial_number.c_str(),
+                         pnp_id.c_str(),
+                         location_id.c_str(),
+                         product_id.c_str(),
+                         vendor_id.c_str());
+            }
+
+            ++count;
         }
     }
     catch (const fs::filesystem_error&)
@@ -401,20 +489,7 @@ int serialGetPortsInfo(void* buffer, int bufferSize, void* separatorPtr)
         return 0;
     }
 
-    if (!result.empty())
-    {
-        // Remove the trailing separator
-        result.erase(result.size() - sep.size());
-    }
-
-    if (static_cast<int>(result.size()) + 1 > bufferSize)
-    {
-        invokeError(std::to_underlying(StatusCodes::BUFFER_ERROR), "serialGetPortsInfo: Buffer too small");
-        return 0;
-    }
-
-    std::memcpy(buffer, result.c_str(), result.size() + 1);
-    return result.empty() ? 0 : 1; // number of ports not easily counted here
+    return count; // number of ports discovered
 }
 
 // -----------------------------------------------------------------------------

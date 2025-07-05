@@ -83,36 +83,31 @@ TEST(SerialOpenTest, InvalidPathInvokesErrorCallback)
 }
 
 // ------------------------ serialGetPortsInfo checks ------------------------
-TEST(SerialGetPortsInfoTest, BufferTooSmallTriggersError)
+TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
 {
-    constexpr std::string_view separator{";"};
-    std::array<char, 4> info_buffer{};
-    std::atomic<int> err_code{0};
+    // Counter for how many times the callback is invoked
+    static int callback_count = 0;
+    callback_count = 0;
 
-    g_err_ptr = &err_code;
-    serialOnError(errorCallback);
-
-    int result = serialGetPortsInfo(info_buffer.data(), static_cast<int>(info_buffer.size()), (void*)separator.data());
-    EXPECT_EQ(result, 0); // function indicates failure via 0
-    EXPECT_EQ(err_code.load(), static_cast<int>(StatusCodes::BUFFER_ERROR));
-
-    serialOnError(nullptr);
-}
-
-TEST(SerialGetPortsInfoTest, LargeBufferReturnsZeroOrOne)
-{
-    constexpr std::string_view separator{";"};
-    std::array<char, 4096> info_buffer{};
+    auto callbackFunc = [](const char* /*port*/,
+                           const char* /*path*/,
+                           const char* /*manufacturer*/,
+                           const char* /*serialNumber*/,
+                           const char* /*pnpId*/,
+                           const char* /*locationId*/,
+                           const char* /*productId*/,
+                           const char* /*vendorId*/) { ++callback_count; };
 
     std::atomic<int> err_code{0};
     g_err_ptr = &err_code;
     serialOnError(errorCallback);
 
-    int result = serialGetPortsInfo(info_buffer.data(), static_cast<int>(info_buffer.size()), (void*)separator.data());
-    EXPECT_GE(result, 0);
-    // res is 0 (no ports) or 1 (ports found)
-    EXPECT_LE(result, 1);
-    // Acceptable error codes: none or NOT_FOUND_ERROR (e.g., dir missing)
+    int result = serialGetPortsInfo(callbackFunc);
+
+    // result should match the number of times our callback ran
+    EXPECT_EQ(result, callback_count);
+
+    // Acceptable error codes: none or NOT_FOUND_ERROR (e.g., dir missing on CI)
     if (err_code != 0)
     {
         EXPECT_EQ(err_code.load(), static_cast<int>(StatusCodes::NOT_FOUND_ERROR));
@@ -124,32 +119,24 @@ TEST(SerialGetPortsInfoTest, LargeBufferReturnsZeroOrOne)
 // ---------------------------- Port listing helper ---------------------------
 TEST(SerialGetPortsInfoTest, PrintAvailablePorts)
 {
-    constexpr std::string_view separator{";"};
-    std::array<char, 4096> info_buffer{};
+    auto print_callback = [](const char* port,
+                             const char* path,
+                             const char* /*manufacturer*/,
+                             const char* /*serialNumber*/,
+                             const char* /*pnpId*/,
+                             const char* /*locationId*/,
+                             const char* /*productId*/,
+                             const char* /*vendorId*/) { std::cout << "  " << port << " (alias: " << path << ")\n"; };
 
-    int result = serialGetPortsInfo(info_buffer.data(), static_cast<int>(info_buffer.size()), (void*)separator.data());
+    int result = serialGetPortsInfo(print_callback);
     EXPECT_GE(result, 0);
-
-    std::string ports_str(info_buffer.data());
-    if (!ports_str.empty())
+    if (result == 0)
     {
-        std::cout << "\nAvailable serial ports (by-id):\n";
-        size_t start = 0;
-        while (true)
-        {
-            size_t pos = ports_str.find(separator.data(), start);
-            std::string token = ports_str.substr(start, pos - start);
-            std::cout << "  " << token << "\n";
-            if (pos == std::string::npos)
-            {
-                break;
-            }
-            start = pos + std::strlen(separator.data());
-        }
+        std::cout << "\nNo serial devices found in /dev/serial/by-id\n";
     }
     else
     {
-        std::cout << "\nNo serial devices found in /dev/serial/by-id\n";
+        std::cout << "\nAvailable serial ports (by-id):\n";
     }
 }
 

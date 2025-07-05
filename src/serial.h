@@ -24,7 +24,14 @@ extern "C"
 
     MODULE_API int serialWrite(int64_t handle, const void* buffer, int bufferSize, int timeout, int multiplier);
 
-    MODULE_API int serialGetPortsInfo(void* buffer, int bufferSize, void* separator);
+    MODULE_API int serialGetPortsInfo(void (*function)(const char* port,
+                                                       const char* path,
+                                                       const char* manufacturer,
+                                                       const char* serialNumber,
+                                                       const char* pnpId,
+                                                       const char* locationId,
+                                                       const char* productId,
+                                                       const char* vendorId));
 
     MODULE_API void serialClearBufferIn(int64_t handle);
     MODULE_API void serialClearBufferOut(int64_t handle);
