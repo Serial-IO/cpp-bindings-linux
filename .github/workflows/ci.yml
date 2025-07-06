@@ -19,7 +19,7 @@ jobs:
 
       - name: Build in manylinux2014 container
         run: |
-          docker run --rm -v "${{ github.workspace }}:/project" -w /project quay.io/pypa/manylinux2014_x86_64 /bin/bash -c "yum install -y cmake3 && ln -sf /usr/bin/cmake3 /usr/bin/cmake && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\$(nproc)"
+          docker run --rm -v "${{ github.workspace }}:/project" -w /project quay.io/pypa/manylinux2014_x86_64 /bin/bash -c "yum install -y cmake3 devtoolset-12-gcc devtoolset-12-gcc-c++ && ln -sf /usr/bin/cmake3 /usr/bin/cmake && source /opt/rh/devtoolset-12/enable && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\$(nproc)"
 
       - name: Upload library artifact
         uses: actions/upload-artifact@v4
