@@ -1,6 +1,5 @@
-#include "serial.h"
-#include "status_codes.h"
-
+#include <cpp_core/serial.h>
+#include <cpp_core/status_codes.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -128,7 +127,7 @@ bool handleEntry(const fs::directory_entry& entry,
 
 } // namespace
 
-int serialGetPortsInfo(void (*callback)(const char* port,
+int serialGetPortsInfo(void (*function)(const char* port,
                                         const char* path,
                                         const char* manufacturer,
                                         const char* serialNumber,
@@ -140,7 +139,7 @@ int serialGetPortsInfo(void (*callback)(const char* port,
     const fs::path by_id_dir{"/dev/serial/by-id"};
     if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))
     {
-        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
+        invokeError(std::to_underlying(cpp_core::StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
         return 0;
     }
 
@@ -150,7 +149,7 @@ int serialGetPortsInfo(void (*callback)(const char* port,
     {
         for (const auto& entry : fs::directory_iterator{by_id_dir})
         {
-            if (handleEntry(entry, callback))
+            if (handleEntry(entry, function))
             {
                 ++count;
             }
@@ -158,7 +157,7 @@ int serialGetPortsInfo(void (*callback)(const char* port,
     }
     catch (const fs::filesystem_error&)
     {
-        invokeError(std::to_underlying(StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
+        invokeError(std::to_underlying(cpp_core::StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
         return 0;
     }
 

@@ -1,9 +1,8 @@
-#include "serial.h"
-#include "status_codes.h"
-
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cpp_core/serial.h>
+#include <cpp_core/status_codes.h>
 #include <cstdlib>
 #include <fcntl.h>
 #include <gtest/gtest.h>
@@ -75,7 +74,7 @@ TEST(SerialOpenTest, InvalidPathInvokesErrorCallback)
 
     intptr_t handle = serialOpen((void*)"/dev/__does_not_exist__", 115200, 8, 0, 0);
     EXPECT_EQ(handle, 0);
-    EXPECT_EQ(err_code.load(), static_cast<int>(StatusCodes::INVALID_HANDLE_ERROR));
+    EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::INVALID_HANDLE_ERROR));
 
     // Reset to nullptr so other tests don't see our callback
     serialOnError(nullptr);
@@ -109,7 +108,7 @@ TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
     // Acceptable error codes: none or NOT_FOUND_ERROR (e.g., dir missing on CI)
     if (err_code != 0)
     {
-        EXPECT_EQ(err_code.load(), static_cast<int>(StatusCodes::NOT_FOUND_ERROR));
+        EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::NOT_FOUND_ERROR));
     }
 
     serialOnError(nullptr);
@@ -198,4 +197,11 @@ TEST(SerialHelpers, Drain)
     int written = serialWriteLine(dev.handle, payload.c_str(), static_cast<int>(payload.size()), 2000);
     ASSERT_GT(written, 0);
     ASSERT_EQ(serialDrain(dev.handle), 1);
+}
+
+TEST(SerialHelpers, Version)
+{
+    EXPECT_EQ(cpp_core::VERSION.major, 1);
+    EXPECT_EQ(cpp_core::VERSION.minor, 0);
+    EXPECT_EQ(cpp_core::VERSION.patch, 0);
 }

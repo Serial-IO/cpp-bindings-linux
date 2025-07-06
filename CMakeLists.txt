@@ -10,8 +10,8 @@ project(${PROJECT_N} VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 # Ensure position-independent code for all targets (required for shared libraries)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Link libstdc++ and libgcc statically for better portability
-add_link_options(-static-libstdc++ -static-libgcc -pthread)
+# Always use pthread
+add_link_options(-pthread)
 add_compile_options(-pthread)
 
 # Generate compile_commands.json for clang-based tooling (clangd / clang-tidy)
@@ -27,6 +27,16 @@ CPMAddPackage(
     OPTIONS "GTEST_BUILD_TESTS OFF"
     OPTIONS "GTEST_BUILD_EXAMPLES OFF"
     OPTIONS "GTEST_BUILD_DOCS OFF"
+)
+
+set(CPP_CORE_VERSION_MAJOR ${VERSION_MAJOR} CACHE STRING "")
+set(CPP_CORE_VERSION_MINOR ${VERSION_MINOR} CACHE STRING "")
+set(CPP_CORE_VERSION_PATCH ${VERSION_PATCH} CACHE STRING "")
+
+CPMAddPackage(
+  NAME cpp_core
+  GITHUB_REPOSITORY Serial-IO/cpp-core    
+  GIT_TAG make-core        
 )
 
 # Ensure clang tooling can pick up compile_commands.json from project root
@@ -45,8 +55,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/**.cpp)
 
 set(LIB true)
-
-configure_file(versioning/version_config.h.in ${PROJECT_SOURCE_DIR}/src/version_config.h)
 
 # a macro that gets all of the header containing directories. 
 MACRO(header_directories return_list includes_base_folder extention )
@@ -79,6 +87,8 @@ else()
     add_executable(${PROJECT_N} ${SRCS}) 
 endif(LIB)
 
+target_link_libraries(${PROJECT_N} PRIVATE cpp_core)
+
 set_target_properties(${PROJECT_N} PROPERTIES 
                               VERSION ${PROJECT_VERSION}
                             SOVERSION ${PROJECT_VERSION_MAJOR})
@@ -89,7 +99,7 @@ add_executable(tests
     tests/serial_test.cpp
     tests/serial_unit_tests.cpp)
 
-target_link_libraries(tests PRIVATE ${PROJECT_N} gtest)
+target_link_libraries(tests PRIVATE ${PROJECT_N} gtest cpp_core)
 
 target_include_directories(tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 

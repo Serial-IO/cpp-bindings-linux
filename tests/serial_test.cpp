@@ -27,10 +27,9 @@
 */
 // ------------------------------------------------
 
-#include "serial.h"
-
 #include <array>
 #include <chrono>
+#include <cpp_core/serial.h>
 #include <cstring>
 #include <gtest/gtest.h>
 #include <string>
