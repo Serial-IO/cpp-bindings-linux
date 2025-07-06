@@ -7,6 +7,13 @@ set(VERSION_PATCH 0)
 set(PROJECT_N cpp_unix_bindings)
 project(${PROJECT_N} VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
+# Ensure position-independent code for all targets (required for shared libraries)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Link libstdc++ and libgcc statically for better portability
+add_link_options(-static-libstdc++ -static-libgcc -pthread)
+add_compile_options(-pthread)
+
 # Generate compile_commands.json for clang-based tooling (clangd / clang-tidy)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
