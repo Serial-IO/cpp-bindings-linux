@@ -123,14 +123,14 @@ bool handleEntry(const fs::directory_entry& entry,
 
 } // namespace
 
-extern "C" int serialGetPortsInfo(void (*function)(const char* port,
-                                                   const char* path,
-                                                   const char* manufacturer,
-                                                   const char* serialNumber,
-                                                   const char* pnpId,
-                                                   const char* locationId,
-                                                   const char* productId,
-                                                   const char* vendorId),
+extern "C" int serialGetPortsInfo(void (*callback_fn)(const char* port,
+                                                      const char* path,
+                                                      const char* manufacturer,
+                                                      const char* serialNumber,
+                                                      const char* pnpId,
+                                                      const char* locationId,
+                                                      const char* productId,
+                                                      const char* vendorId),
                                   ErrorCallbackT error_callback)
 {
     const fs::path by_id_dir{"/dev/serial/by-id"};
@@ -147,7 +147,7 @@ extern "C" int serialGetPortsInfo(void (*function)(const char* port,
     {
         for (const auto& entry : fs::directory_iterator{by_id_dir})
         {
-            if (handleEntry(entry, function))
+            if (handleEntry(entry, callback_fn))
             {
                 ++count;
             }
