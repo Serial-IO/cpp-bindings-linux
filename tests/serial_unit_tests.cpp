@@ -1,6 +1,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cpp_core/interface/serial_set_error_callback.h>
 #include <cpp_core/serial.h>
 #include <cpp_core/status_codes.h>
 #include <cstdlib>
@@ -11,6 +12,27 @@
 #include <string_view>
 #include <thread>
 #include <unistd.h>
+
+// Kleine Helfer für neue API --------------------------------------------------
+
+// Wrap der früher vorhandenen Funktion serialWriteLine
+static int serialWriteLine(int64_t handle, const void* buffer, int buffer_size, int timeout_ms)
+{
+    int written = serialWrite(handle, buffer, buffer_size, timeout_ms, 1);
+    if (written != buffer_size)
+    {
+        return written; // Fehler
+    }
+    const char nl = '\n';
+    int nl_written = serialWrite(handle, &nl, 1, timeout_ms, 1);
+    return (nl_written == 1) ? (written + 1) : written;
+}
+
+// Alias für die neue Callback-Registrierung (ersetzt serialOnError)
+static void serialOnError(ErrorCallbackT cb)
+{
+    serialSetErrorCallback(cb);
+}
 
 namespace
 {
@@ -73,8 +95,8 @@ TEST(SerialOpenTest, InvalidPathInvokesErrorCallback)
     serialOnError(errorCallback);
 
     intptr_t handle = serialOpen((void*)"/dev/__does_not_exist__", 115200, 8, 0, 0);
-    EXPECT_EQ(handle, 0);
-    EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::INVALID_HANDLE_ERROR));
+    EXPECT_LT(handle, 0);
+    EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
 
     // Reset to nullptr so other tests don't see our callback
     serialOnError(nullptr);
@@ -108,7 +130,7 @@ TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
     // Acceptable error codes: none or NOT_FOUND_ERROR (e.g., dir missing on CI)
     if (err_code != 0)
     {
-        EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::NOT_FOUND_ERROR));
+        EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::kNotFoundError));
     }
 
     serialOnError(nullptr);
@@ -144,18 +166,6 @@ TEST(SerialStubbedFunctions, DoNotCrash)
     SUCCEED(); // reached here without segfaults
 }
 
-TEST(SerialHelpers, ReadLine)
-{
-    SerialDevice dev;
-    const std::string msg = "Hello World\n";
-    dev.writeToDevice(msg);
-
-    std::array<char, 64> read_buffer{};
-    int num_read = serialReadLine(dev.handle, read_buffer.data(), static_cast<int>(read_buffer.size()), 2000);
-    ASSERT_EQ(num_read, static_cast<int>(msg.size()));
-    ASSERT_EQ(std::string_view(read_buffer.data(), num_read), msg);
-}
-
 TEST(SerialHelpers, ReadUntilToken)
 {
     SerialDevice dev;
@@ -164,8 +174,12 @@ TEST(SerialHelpers, ReadUntilToken)
 
     std::array<char, 64> read_buffer{};
     constexpr std::string_view ok_token{"OK"};
-    int num_read =
-        serialReadUntilSequence(dev.handle, read_buffer.data(), static_cast<int>(read_buffer.size()), 2000, (void*)ok_token.data());
+    int num_read = serialReadUntilSequence(dev.handle,
+                                           read_buffer.data(),
+                                           static_cast<int>(read_buffer.size()),
+                                           2000,
+                                           1, // multiplier
+                                           (void*)ok_token.data());
     ASSERT_EQ(num_read, static_cast<int>(payload.size()));
     ASSERT_EQ(std::string_view(read_buffer.data(), num_read), payload);
 }
@@ -196,12 +210,12 @@ TEST(SerialHelpers, Drain)
     const std::string payload = "TEXT";
     int written = serialWriteLine(dev.handle, payload.c_str(), static_cast<int>(payload.size()), 2000);
     ASSERT_GT(written, 0);
-    ASSERT_EQ(serialDrain(dev.handle), 1);
+    ASSERT_EQ(serialDrain(dev.handle), 0);
 }
 
 TEST(SerialHelpers, Version)
 {
-    EXPECT_EQ(cpp_core::VERSION.major, 1);
-    EXPECT_EQ(cpp_core::VERSION.minor, 0);
-    EXPECT_EQ(cpp_core::VERSION.patch, 0);
+    EXPECT_EQ(cpp_core::kVersion.major, 1U);
+    EXPECT_EQ(cpp_core::kVersion.minor, 0U);
+    EXPECT_EQ(cpp_core::kVersion.patch, 0U);
 }

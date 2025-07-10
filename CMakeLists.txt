@@ -36,7 +36,7 @@ set(CPP_CORE_VERSION_PATCH ${VERSION_PATCH} CACHE STRING "")
 CPMAddPackage(
   NAME cpp_core
   GITHUB_REPOSITORY Serial-IO/cpp-core    
-  GIT_TAG make-core        
+  GIT_TAG main       
 )
 
 # Ensure clang tooling can pick up compile_commands.json from project root
@@ -52,7 +52,10 @@ endif()
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Collect all .cpp files except the legacy monolithic implementation
 file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/**.cpp)
+# Remove serial.cpp from the list (it has been superseded by modular implementations)
+list(REMOVE_ITEM SRCS ${PROJECT_SOURCE_DIR}/src/serial.cpp)
 
 set(LIB true)
 

@@ -1,5 +1,6 @@
-#include <cpp_core/serial.h>
-#include <cpp_core/status_codes.h>
+#include "serial_internal.hpp"
+
+#include <cpp_core/interface/serial_get_ports_info.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -9,13 +10,8 @@ namespace
 {
 namespace fs = std::filesystem;
 
-inline void invokeError(int code, const char* message)
-{
-    if (on_error_callback != nullptr)
-    {
-        on_error_callback(code, message);
-    }
-}
+using serial_internal::g_error_callback;
+using serial_internal::invokeError;
 
 // Reads a single attribute file from a given directory. Returns empty string on error.
 std::string readAttr(const fs::path& dir, const std::string& attr)
@@ -127,19 +123,21 @@ bool handleEntry(const fs::directory_entry& entry,
 
 } // namespace
 
-int serialGetPortsInfo(void (*function)(const char* port,
-                                        const char* path,
-                                        const char* manufacturer,
-                                        const char* serialNumber,
-                                        const char* pnpId,
-                                        const char* locationId,
-                                        const char* productId,
-                                        const char* vendorId))
+extern "C" int serialGetPortsInfo(void (*function)(const char* port,
+                                                   const char* path,
+                                                   const char* manufacturer,
+                                                   const char* serialNumber,
+                                                   const char* pnpId,
+                                                   const char* locationId,
+                                                   const char* productId,
+                                                   const char* vendorId),
+                                  ErrorCallbackT error_callback)
 {
     const fs::path by_id_dir{"/dev/serial/by-id"};
     if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialGetPortsInfo: Failed to get ports info", error_callback);
         return 0;
     }
 
@@ -157,7 +155,8 @@ int serialGetPortsInfo(void (*function)(const char* port,
     }
     catch (const fs::filesystem_error&)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::NOT_FOUND_ERROR), "serialGetPortsInfo: Failed to get ports info");
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialGetPortsInfo: Failed to get ports info", error_callback);
         return 0;
     }
 
