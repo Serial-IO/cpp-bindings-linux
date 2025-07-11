@@ -13,6 +13,8 @@ extern "C" int serialClearBufferOut(int64_t handle_ptr, ErrorCallbackT error_cal
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
+    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+
     if (tcflush(handle->fd, TCOFLUSH) != 0)
     {
         invokeError(std::to_underlying(cpp_core::StatusCodes::kClearBufferOutError),

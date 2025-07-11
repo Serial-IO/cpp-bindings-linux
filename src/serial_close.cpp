@@ -13,6 +13,8 @@ extern "C" int serialClose(int64_t handle_ptr, ErrorCallbackT error_callback)
         return 0;
     }
 
+    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+
     // Restore original settings and close the descriptor.
     if (tcsetattr(handle->fd, TCSANOW, &handle->original) != 0)
     {

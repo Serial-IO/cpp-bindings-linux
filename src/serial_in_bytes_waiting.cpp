@@ -13,6 +13,8 @@ extern "C" int serialInBytesWaiting(int64_t handle_ptr, ErrorCallbackT error_cal
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
+    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+
     int available = 0;
     if (ioctl(handle->fd, FIONREAD, &available) == -1)
     {

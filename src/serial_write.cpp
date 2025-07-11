@@ -19,6 +19,8 @@ serialWrite(int64_t handle_ptr, const void* buffer, int buffer_size, int timeout
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
+    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+
     // Abort?
     if (handle->abort_write.exchange(false))
     {

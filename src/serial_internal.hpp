@@ -6,6 +6,7 @@
 #include <cpp_core/status_codes.h>
 #include <cstdint>
 #include <fcntl.h>
+#include <mutex>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
@@ -47,6 +48,7 @@ struct SerialPortHandle
     int64_t rx_total{0};
     int64_t tx_total{0};
 
+    std::recursive_mutex mtx; // Protects concurrent read/write operations
     std::atomic<bool> abort_read{false};
     std::atomic<bool> abort_write{false};
 };

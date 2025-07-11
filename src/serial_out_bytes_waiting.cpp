@@ -14,6 +14,8 @@ extern "C" int serialOutBytesWaiting(int64_t handle_ptr, ErrorCallbackT error_ca
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
+    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+
     int queued = 0;
 #ifdef TIOCOUTQ
     if (ioctl(handle->fd, TIOCOUTQ, &queued) == -1)

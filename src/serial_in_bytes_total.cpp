@@ -11,5 +11,7 @@ extern "C" int64_t serialInBytesTotal(int64_t handle_ptr, ErrorCallbackT /*error
     {
         return 0;
     }
+
+    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
     return handle->rx_total;
 }
