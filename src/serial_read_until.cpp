@@ -6,23 +6,34 @@
 using namespace serial_internal;
 
 extern "C" int serialReadUntil(
-    int64_t handle_ptr, void* buffer, int buffer_size, int timeout_ms, int multiplier, void* until_char_ptr, ErrorCallbackT error_callback)
+    int64_t        handle_ptr,
+    void          *buffer,
+    int            buffer_size,
+    int            timeout_ms,
+    int            multiplier,
+    void          *until_char_ptr,
+    ErrorCallbackT error_callback
+)
 {
     if (buffer == nullptr || buffer_size <= 0 || until_char_ptr == nullptr)
     {
         return std::to_underlying(cpp_core::StatusCodes::kBufferError);
     }
 
-    auto* handle = reinterpret_cast<SerialPortHandle*>(handle_ptr);
+    auto *handle = reinterpret_cast<SerialPortHandle *>(handle_ptr);
     if (handle == nullptr)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError), "serialReadUntil: Invalid handle", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError),
+            "serialReadUntil: Invalid handle",
+            error_callback
+        );
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
-    char terminator = *static_cast<char*>(until_char_ptr);
-    char* char_buf = static_cast<char*>(buffer);
-    int total = 0;
+    char  terminator = *static_cast<char *>(until_char_ptr);
+    char *char_buf   = static_cast<char *>(buffer);
+    int   total      = 0;
 
     while (total < buffer_size)
     {

@@ -4,18 +4,28 @@
 
 using namespace serial_internal;
 
-extern "C" int
-serialWrite(int64_t handle_ptr, const void* buffer, int buffer_size, int timeout_ms, int /*multiplier*/, ErrorCallbackT error_callback)
+extern "C" int serialWrite(
+    int64_t     handle_ptr,
+    const void *buffer,
+    int         buffer_size,
+    int         timeout_ms,
+    int /*multiplier*/,
+    ErrorCallbackT error_callback
+)
 {
     if (buffer == nullptr || buffer_size <= 0)
     {
         return std::to_underlying(cpp_core::StatusCodes::kBufferError);
     }
 
-    auto* handle = reinterpret_cast<SerialPortHandle*>(handle_ptr);
+    auto *handle = reinterpret_cast<SerialPortHandle *>(handle_ptr);
     if (handle == nullptr)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError), "serialWrite: Invalid handle", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError),
+            "serialWrite: Invalid handle",
+            error_callback
+        );
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 

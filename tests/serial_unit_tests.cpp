@@ -16,15 +16,20 @@
 // Kleine Helfer für neue API --------------------------------------------------
 
 // Wrap der früher vorhandenen Funktion serialWriteLine
-static int serialWriteLine(int64_t handle, const void* buffer, int buffer_size, int timeout_ms)
+static int serialWriteLine(
+    int64_t     handle,
+    const void *buffer,
+    int         buffer_size,
+    int         timeout_ms
+)
 {
     int written = serialWrite(handle, buffer, buffer_size, timeout_ms, 1);
     if (written != buffer_size)
     {
         return written; // Fehler
     }
-    const char nl = '\n';
-    int nl_written = serialWrite(handle, &nl, 1, timeout_ms, 1);
+    const char nl         = '\n';
+    int        nl_written = serialWrite(handle, &nl, 1, timeout_ms, 1);
     return (nl_written == 1) ? (written + 1) : written;
 }
 
@@ -37,9 +42,12 @@ static void serialOnError(ErrorCallbackT cb)
 namespace
 {
 // Helper storage for callback tests
-std::atomic<int>* g_err_ptr = nullptr;
+std::atomic<int> *g_err_ptr = nullptr;
 
-void errorCallback(int code, const char* /*message*/)
+void errorCallback(
+    int code,
+    const char * /*message*/
+)
 {
     if (g_err_ptr != nullptr)
     {
@@ -48,21 +56,21 @@ void errorCallback(int code, const char* /*message*/)
 }
 
 // Helper to resolve serial port path (env var override)
-const char* getDefaultPort()
+const char *getDefaultPort()
 {
-    const char* env = std::getenv("SERIAL_PORT");
+    const char *env = std::getenv("SERIAL_PORT");
     return (env != nullptr) ? env : "/dev/ttyUSB0";
 }
 
 struct SerialDevice
 {
-    intptr_t handle{0};
-    const char* port{nullptr};
+    intptr_t    handle{0};
+    const char *port{nullptr};
 
     explicit SerialDevice(int baud = 115200)
     {
-        port = getDefaultPort();
-        handle = serialOpen((void*)port, baud, 8, 0, 0);
+        port   = getDefaultPort();
+        handle = serialOpen((void *)port, baud, 8, 0, 0);
         if (handle == 0)
         {
             throw std::runtime_error(std::string{"Failed to open port "} + port);
@@ -87,14 +95,17 @@ struct SerialDevice
 } // namespace
 
 // ------------------------------- Error path --------------------------------
-TEST(SerialOpenTest, InvalidPathInvokesErrorCallback)
+TEST(
+    SerialOpenTest,
+    InvalidPathInvokesErrorCallback
+)
 {
     std::atomic<int> err_code{0};
 
     g_err_ptr = &err_code;
     serialOnError(errorCallback);
 
-    intptr_t handle = serialOpen((void*)"/dev/__does_not_exist__", 115200, 8, 0, 0);
+    intptr_t handle = serialOpen((void *)"/dev/__does_not_exist__", 115200, 8, 0, 0);
     EXPECT_LT(handle, 0);
     EXPECT_EQ(err_code.load(), static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
 
@@ -103,20 +114,23 @@ TEST(SerialOpenTest, InvalidPathInvokesErrorCallback)
 }
 
 // ------------------------ serialGetPortsInfo checks ------------------------
-TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
+TEST(
+    SerialGetPortsInfoTest,
+    CallbackReceivesPortInfo
+)
 {
     // Counter for how many times the callback is invoked
     static int callback_count = 0;
-    callback_count = 0;
+    callback_count            = 0;
 
-    auto callback_func = [](const char* /*port*/,
-                            const char* /*path*/,
-                            const char* /*manufacturer*/,
-                            const char* /*serialNumber*/,
-                            const char* /*pnpId*/,
-                            const char* /*locationId*/,
-                            const char* /*productId*/,
-                            const char* /*vendorId*/) { ++callback_count; };
+    auto callback_func = [](const char * /*port*/,
+                            const char * /*path*/,
+                            const char * /*manufacturer*/,
+                            const char * /*serialNumber*/,
+                            const char * /*pnpId*/,
+                            const char * /*locationId*/,
+                            const char * /*productId*/,
+                            const char * /*vendorId*/) { ++callback_count; };
 
     std::atomic<int> err_code{0};
     g_err_ptr = &err_code;
@@ -137,16 +151,19 @@ TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
 }
 
 // ---------------------------- Port listing helper ---------------------------
-TEST(SerialGetPortsInfoTest, PrintAvailablePorts)
+TEST(
+    SerialGetPortsInfoTest,
+    PrintAvailablePorts
+)
 {
-    auto print_callback = [](const char* port,
-                             const char* path,
-                             const char* /*manufacturer*/,
-                             const char* /*serialNumber*/,
-                             const char* /*pnpId*/,
-                             const char* /*locationId*/,
-                             const char* /*productId*/,
-                             const char* /*vendorId*/) { std::cout << "  " << port << " (alias: " << path << ")\n"; };
+    auto print_callback = [](const char *port,
+                             const char *path,
+                             const char * /*manufacturer*/,
+                             const char * /*serialNumber*/,
+                             const char * /*pnpId*/,
+                             const char * /*locationId*/,
+                             const char * /*productId*/,
+                             const char * /*vendorId*/) { std::cout << "  " << port << " (alias: " << path << ")\n"; };
 
     int result = serialListPorts(print_callback);
     EXPECT_GE(result, 0);
@@ -157,7 +174,10 @@ TEST(SerialGetPortsInfoTest, PrintAvailablePorts)
 }
 
 // --------------------------- Stubbed no-op APIs ----------------------------
-TEST(SerialStubbedFunctions, DoNotCrash)
+TEST(
+    SerialStubbedFunctions,
+    DoNotCrash
+)
 {
     serialClearBufferIn(0);
     serialClearBufferOut(0);
@@ -166,27 +186,35 @@ TEST(SerialStubbedFunctions, DoNotCrash)
     SUCCEED(); // reached here without segfaults
 }
 
-TEST(SerialHelpers, ReadUntilToken)
+TEST(
+    SerialHelpers,
+    ReadUntilToken
+)
 {
-    SerialDevice dev;
+    SerialDevice      dev;
     const std::string payload = "ABC_OK";
     dev.writeToDevice(payload);
 
-    std::array<char, 64> read_buffer{};
+    std::array<char, 64>       read_buffer{};
     constexpr std::string_view ok_token{"OK"};
-    int num_read = serialReadUntilSequence(dev.handle,
-                                           read_buffer.data(),
-                                           static_cast<int>(read_buffer.size()),
-                                           2000,
-                                           1, // multiplier
-                                           (void*)ok_token.data());
+    int                        num_read = serialReadUntilSequence(
+        dev.handle,
+        read_buffer.data(),
+        static_cast<int>(read_buffer.size()),
+        2000,
+        1, // multiplier
+        (void *)ok_token.data()
+    );
     ASSERT_EQ(num_read, static_cast<int>(payload.size()));
     ASSERT_EQ(std::string_view(read_buffer.data(), num_read), payload);
 }
 
-TEST(SerialHelpers, Statistics)
+TEST(
+    SerialHelpers,
+    Statistics
+)
 {
-    SerialDevice dev;
+    SerialDevice      dev;
     const std::string payload = "0123456789";
 
     // Transmit to device
@@ -204,16 +232,22 @@ TEST(SerialHelpers, Statistics)
     ASSERT_EQ(serialInBytesTotal(dev.handle), static_cast<int64_t>(payload.size()));
 }
 
-TEST(SerialHelpers, Drain)
+TEST(
+    SerialHelpers,
+    Drain
+)
 {
-    SerialDevice dev;
+    SerialDevice      dev;
     const std::string payload = "TEXT";
-    int written = serialWriteLine(dev.handle, payload.c_str(), static_cast<int>(payload.size()), 2000);
+    int               written = serialWriteLine(dev.handle, payload.c_str(), static_cast<int>(payload.size()), 2000);
     ASSERT_GT(written, 0);
     ASSERT_EQ(serialDrain(dev.handle), 0);
 }
 
-TEST(SerialHelpers, Version)
+TEST(
+    SerialHelpers,
+    Version
+)
 {
     EXPECT_EQ(cpp_core::kVersion.major, 1U);
     EXPECT_EQ(cpp_core::kVersion.minor, 0U);

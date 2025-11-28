@@ -14,7 +14,10 @@ using serial_internal::g_error_callback;
 using serial_internal::invokeError;
 
 // Reads a single attribute file from a given directory. Returns empty string on error.
-std::string readAttr(const fs::path& dir, const std::string& attr)
+std::string readAttr(
+    const fs::path    &dir,
+    const std::string &attr
+)
 {
     std::ifstream file(dir / attr);
     if (!file.is_open())
@@ -37,13 +40,13 @@ struct UsbInfo
 };
 
 // Attempts to locate the USB device directory for a tty canonical path and collect attributes.
-UsbInfo collectUsbInfo(const fs::path& canonicalPath)
+UsbInfo collectUsbInfo(const fs::path &canonicalPath)
 {
     UsbInfo info{};
 
     std::error_code error_code;
-    fs::path tty_sys = fs::path{"/sys/class/tty"} / canonicalPath.filename() / "device";
-    tty_sys = fs::canonical(tty_sys, error_code);
+    fs::path        tty_sys = fs::path{"/sys/class/tty"} / canonicalPath.filename() / "device";
+    tty_sys                 = fs::canonical(tty_sys, error_code);
     if (error_code)
     {
         return info; // return empty info if we cannot resolve
@@ -66,17 +69,17 @@ UsbInfo collectUsbInfo(const fs::path& canonicalPath)
         return info; // not a USB device (e.g., built-in tty)
     }
 
-    info.manufacturer = readAttr(usb_dir, "manufacturer");
+    info.manufacturer  = readAttr(usb_dir, "manufacturer");
     info.serial_number = readAttr(usb_dir, "serial");
-    info.vendor_id = readAttr(usb_dir, "idVendor");
-    info.product_id = readAttr(usb_dir, "idProduct");
+    info.vendor_id     = readAttr(usb_dir, "idVendor");
+    info.product_id    = readAttr(usb_dir, "idProduct");
 
     if (!info.vendor_id.empty() && !info.product_id.empty())
     {
         info.pnp_id = "USB\\VID_" + info.vendor_id + "&PID_" + info.product_id;
     }
 
-    const std::string busnum = readAttr(usb_dir, "busnum");
+    const std::string busnum  = readAttr(usb_dir, "busnum");
     const std::string devpath = readAttr(usb_dir, "devpath");
     if (!busnum.empty() && !devpath.empty())
     {
@@ -87,8 +90,19 @@ UsbInfo collectUsbInfo(const fs::path& canonicalPath)
 }
 
 // Handles a single directory entry. Returns true if a port was reported.
-bool handleEntry(const fs::directory_entry& entry,
-                 void (*callback)(const char*, const char*, const char*, const char*, const char*, const char*, const char*, const char*))
+bool handleEntry(
+    const fs::directory_entry &entry,
+    void (*callback)(
+        const char *,
+        const char *,
+        const char *,
+        const char *,
+        const char *,
+        const char *,
+        const char *,
+        const char *
+    )
+)
 {
     if (!entry.is_symlink())
     {
@@ -96,47 +110,57 @@ bool handleEntry(const fs::directory_entry& entry,
     }
 
     std::error_code error_code;
-    fs::path canonical = fs::canonical(entry.path(), error_code);
+    fs::path        canonical = fs::canonical(entry.path(), error_code);
     if (error_code)
     {
         return false;
     }
 
-    const std::string port_path = canonical.string();
+    const std::string port_path    = canonical.string();
     const std::string symlink_path = entry.path().string();
 
     UsbInfo info = collectUsbInfo(canonical);
 
     if (callback != nullptr)
     {
-        callback(port_path.c_str(),
-                 symlink_path.c_str(),
-                 info.manufacturer.c_str(),
-                 info.serial_number.c_str(),
-                 info.pnp_id.c_str(),
-                 info.location_id.c_str(),
-                 info.product_id.c_str(),
-                 info.vendor_id.c_str());
+        callback(
+            port_path.c_str(),
+            symlink_path.c_str(),
+            info.manufacturer.c_str(),
+            info.serial_number.c_str(),
+            info.pnp_id.c_str(),
+            info.location_id.c_str(),
+            info.product_id.c_str(),
+            info.vendor_id.c_str()
+        );
     }
     return true;
 }
 
 } // namespace
 
-extern "C" int serialListPorts(void (*callback_fn)(const char* port,
-                                                   const char* path,
-                                                   const char* manufacturer,
-                                                   const char* serialNumber,
-                                                   const char* pnpId,
-                                                   const char* locationId,
-                                                   const char* productId,
-                                                   const char* vendorId),
-                               ErrorCallbackT error_callback)
+extern "C" int serialListPorts(
+    void (*callback_fn)(
+        const char *port,
+        const char *path,
+        const char *manufacturer,
+        const char *serialNumber,
+        const char *pnpId,
+        const char *locationId,
+        const char *productId,
+        const char *vendorId
+    ),
+    ErrorCallbackT error_callback
+)
 {
     const fs::path by_id_dir{"/dev/serial/by-id"};
     if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialListPorts: Failed to get ports info", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kNotFoundError),
+            "serialListPorts: Failed to get ports info",
+            error_callback
+        );
         return 0;
     }
 
@@ -144,7 +168,7 @@ extern "C" int serialListPorts(void (*callback_fn)(const char* port,
 
     try
     {
-        for (const auto& entry : fs::directory_iterator{by_id_dir})
+        for (const auto &entry : fs::directory_iterator{by_id_dir})
         {
             if (handleEntry(entry, callback_fn))
             {
@@ -152,9 +176,13 @@ extern "C" int serialListPorts(void (*callback_fn)(const char* port,
             }
         }
     }
-    catch (const fs::filesystem_error&)
+    catch (const fs::filesystem_error &)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialListPorts: Failed to get ports info", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kNotFoundError),
+            "serialListPorts: Failed to get ports info",
+            error_callback
+        );
         return 0;
     }
 

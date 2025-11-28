@@ -5,30 +5,48 @@
 
 using namespace serial_internal;
 
-extern "C" intptr_t serialOpen(void* port, int baudrate, int data_bits, int parity, int stop_bits, ErrorCallbackT error_callback)
+extern "C" intptr_t serialOpen(
+    void          *port,
+    int            baudrate,
+    int            data_bits,
+    int            parity,
+    int            stop_bits,
+    ErrorCallbackT error_callback
+)
 {
     if (port == nullptr)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError), "serialOpen: Invalid port handle", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError),
+            "serialOpen: Invalid port handle",
+            error_callback
+        );
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
-    std::string_view port_name{static_cast<const char*>(port)};
-    int fd = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
+    std::string_view port_name{static_cast<const char *>(port)};
+    int              fd = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0)
     {
         invokeError(
-            std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError), "serialOpen: Failed to open serial port", error_callback);
+            std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError),
+            "serialOpen: Failed to open serial port",
+            error_callback
+        );
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
-    auto* handle = new SerialPortHandle{};
-    handle->fd = fd;
+    auto *handle = new SerialPortHandle{};
+    handle->fd   = fd;
 
     termios tty{};
     if (tcgetattr(fd, &tty) != 0)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kGetStateError), "serialOpen: Failed to get port attributes", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kGetStateError),
+            "serialOpen: Failed to get port attributes",
+            error_callback
+        );
         close(fd);
         delete handle;
         return std::to_underlying(cpp_core::StatusCodes::kGetStateError);
@@ -95,12 +113,16 @@ extern "C" intptr_t serialOpen(void* port, int baudrate, int data_bits, int pari
     tty.c_oflag = 0;
     tty.c_lflag = 0;
 
-    tty.c_cc[VMIN] = 0;   // Non-blocking by default
+    tty.c_cc[VMIN]  = 0; // Non-blocking by default
     tty.c_cc[VTIME] = 10; // 1 s read timeout
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0)
     {
-        invokeError(std::to_underlying(cpp_core::StatusCodes::kSetStateError), "serialOpen: Failed to configure port", error_callback);
+        invokeError(
+            std::to_underlying(cpp_core::StatusCodes::kSetStateError),
+            "serialOpen: Failed to configure port",
+            error_callback
+        );
         close(fd);
         delete handle;
         return std::to_underlying(cpp_core::StatusCodes::kSetStateError);

@@ -4,9 +4,12 @@
 
 using namespace serial_internal;
 
-extern "C" int64_t serialInBytesTotal(int64_t handle_ptr, ErrorCallbackT /*error_callback*/)
+extern "C" int64_t serialInBytesTotal(
+    int64_t handle_ptr,
+    ErrorCallbackT /*error_callback*/
+)
 {
-    auto* handle = reinterpret_cast<SerialPortHandle*>(handle_ptr);
+    auto *handle = reinterpret_cast<SerialPortHandle *>(handle_ptr);
     if (handle == nullptr)
     {
         return 0;
