@@ -122,7 +122,7 @@ TEST(SerialGetPortsInfoTest, CallbackReceivesPortInfo)
     g_err_ptr = &err_code;
     serialOnError(errorCallback);
 
-    int result = serialGetPortsInfo(callback_func);
+    int result = serialListPorts(callback_func);
 
     // result should match the number of times our callback ran
     EXPECT_EQ(result, callback_count);
@@ -148,7 +148,7 @@ TEST(SerialGetPortsInfoTest, PrintAvailablePorts)
                              const char* /*productId*/,
                              const char* /*vendorId*/) { std::cout << "  " << port << " (alias: " << path << ")\n"; };
 
-    int result = serialGetPortsInfo(print_callback);
+    int result = serialListPorts(print_callback);
     EXPECT_GE(result, 0);
     if (result == 0)
     {

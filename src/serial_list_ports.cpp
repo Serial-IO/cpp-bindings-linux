@@ -1,6 +1,6 @@
 #include "serial_internal.hpp"
 
-#include <cpp_core/interface/serial_get_ports_info.h>
+#include <cpp_core/interface/serial_list_ports.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -123,21 +123,20 @@ bool handleEntry(const fs::directory_entry& entry,
 
 } // namespace
 
-extern "C" int serialGetPortsInfo(void (*callback_fn)(const char* port,
-                                                      const char* path,
-                                                      const char* manufacturer,
-                                                      const char* serialNumber,
-                                                      const char* pnpId,
-                                                      const char* locationId,
-                                                      const char* productId,
-                                                      const char* vendorId),
-                                  ErrorCallbackT error_callback)
+extern "C" int serialListPorts(void (*callback_fn)(const char* port,
+                                                   const char* path,
+                                                   const char* manufacturer,
+                                                   const char* serialNumber,
+                                                   const char* pnpId,
+                                                   const char* locationId,
+                                                   const char* productId,
+                                                   const char* vendorId),
+                               ErrorCallbackT error_callback)
 {
     const fs::path by_id_dir{"/dev/serial/by-id"};
     if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))
     {
-        invokeError(
-            std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialGetPortsInfo: Failed to get ports info", error_callback);
+        invokeError(std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialListPorts: Failed to get ports info", error_callback);
         return 0;
     }
 
@@ -155,8 +154,7 @@ extern "C" int serialGetPortsInfo(void (*callback_fn)(const char* port,
     }
     catch (const fs::filesystem_error&)
     {
-        invokeError(
-            std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialGetPortsInfo: Failed to get ports info", error_callback);
+        invokeError(std::to_underlying(cpp_core::StatusCodes::kNotFoundError), "serialListPorts: Failed to get ports info", error_callback);
         return 0;
     }
 

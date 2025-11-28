@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-set(VERSION_MAJOR 1)
-set(VERSION_MINOR 0)
-set(VERSION_PATCH 0)
-
-set(PROJECT_N cpp_unix_bindings)
-project(${PROJECT_N} VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+project(cpp_unix_bindings VERSION 1.0.0 LANGUAGES CXX)
 
 # Ensure position-independent code for all targets (required for shared libraries)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -17,100 +12,61 @@ add_compile_options(-pthread)
 # Generate compile_commands.json for clang-based tooling (clangd / clang-tidy)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# C++ standard
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 include(cmake/CPM.cmake)
 
+# Dependencies
 CPMAddPackage(
-    NAME "googletest"
-    GITHUB_REPOSITORY "google/googletest"
-    GIT_TAG "v1.17.0"
+    NAME googletest
+    GITHUB_REPOSITORY google/googletest
+    GIT_TAG v1.17.0
     GIT_SHALLOW TRUE
-    OPTIONS "GTEST_BUILD_TESTS OFF"
-    OPTIONS "GTEST_BUILD_EXAMPLES OFF"
-    OPTIONS "GTEST_BUILD_DOCS OFF"
+    OPTIONS
+    "GTEST_BUILD_TESTS OFF"
+    "GTEST_BUILD_EXAMPLES OFF"
+    "GTEST_BUILD_DOCS OFF"
 )
-
-set(CPP_CORE_VERSION_MAJOR ${VERSION_MAJOR} CACHE STRING "")
-set(CPP_CORE_VERSION_MINOR ${VERSION_MINOR} CACHE STRING "")
-set(CPP_CORE_VERSION_PATCH ${VERSION_PATCH} CACHE STRING "")
 
 CPMAddPackage(
-  NAME cpp_core
-  GITHUB_REPOSITORY Serial-IO/cpp-core    
-  GIT_TAG main       
+    NAME cpp_core
+    GITHUB_REPOSITORY Serial-IO/cpp-core
+    GIT_TAG revamp-project
 )
 
-# Ensure clang tooling can pick up compile_commands.json from project root
-if(CMAKE_EXPORT_COMPILE_COMMANDS)
-    add_custom_target(copy-compile-commands ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_BINARY_DIR}/compile_commands.json
-            ${PROJECT_SOURCE_DIR}/compile_commands.json
-        COMMENT "Copy compile_commands.json to project root" 
-        VERBATIM)
-endif()
+# Collect all source files
+file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+# Main library
+add_library(${PROJECT_NAME} SHARED ${SRCS})
 
-# Collect all .cpp files except the legacy monolithic implementation
-file(GLOB_RECURSE SRCS ${PROJECT_SOURCE_DIR}/src/**.cpp)
-# Remove serial.cpp from the list (it has been superseded by modular implementations)
-list(REMOVE_ITEM SRCS ${PROJECT_SOURCE_DIR}/src/serial.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE cpp_core)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
-set(LIB true)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 
-# a macro that gets all of the header containing directories. 
-MACRO(header_directories return_list includes_base_folder extention )
-    FILE(GLOB_RECURSE new_list ${includes_base_folder}/*.${extention})
-    SET(dir_list "")
-    FOREACH(file_path ${new_list})
-        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
-        SET(dir_list ${dir_list} ${dir_path})
-    ENDFOREACH()
-    LIST(REMOVE_DUPLICATES dir_list)
-    SET(${return_list} ${dir_list})
-ENDMACRO()
-
-# using said macro.
-header_directories(INCLUDES ${PROJECT_SOURCE_DIR}/src/ hpp)
-
-message("src files:")
-foreach(file ${SRCS})
-        message(STATUS ${file})
-endforeach()
-
-message("include directories:")
-foreach(dir ${INCLUDES})
-        message(STATUS ${dir})
-endforeach()
-
-if(LIB)
-    add_library(${PROJECT_N} SHARED ${SRCS})
-else()
-    add_executable(${PROJECT_N} ${SRCS}) 
-endif(LIB)
-
-target_link_libraries(${PROJECT_N} PRIVATE cpp_core)
-
-set_target_properties(${PROJECT_N} PROPERTIES 
-                              VERSION ${PROJECT_VERSION}
-                            SOVERSION ${PROJECT_VERSION_MAJOR})
-
-target_include_directories(${PROJECT_N} PUBLIC ${PROJECT_SOURCE_DIR}/src)
-
+# Test executable
 add_executable(tests
     tests/serial_test.cpp
-    tests/serial_unit_tests.cpp)
+    tests/serial_unit_tests.cpp
+)
 
-target_link_libraries(tests PRIVATE ${PROJECT_N} gtest cpp_core)
-
+target_link_libraries(tests PRIVATE ${PROJECT_NAME} gtest cpp_core)
 target_include_directories(tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
+# Copy shared library next to test binary
 add_custom_command(TARGET tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:${PROJECT_N}>
-            $<TARGET_FILE_DIR:tests>
-    COMMENT "Copy shared library next to aggregated test binary")
+    $<TARGET_FILE:${PROJECT_NAME}>
+    $<TARGET_FILE_DIR:tests>
+    COMMENT "Copy shared library next to test binary"
+)
 
+# Testing
 enable_testing()
 add_test(NAME AllTests COMMAND tests /dev/ttyUSB0)
