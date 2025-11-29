@@ -1,13 +1,14 @@
+#include "cpp_core/error_callback.h"
+#include "cpp_core/status_codes.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_abort_read.h>
+#include <cstdint>
+#include <utility>
 
 using namespace serial_internal;
 
-extern "C" int serialAbortRead(
-    int64_t        handle_ptr,
-    ErrorCallbackT error_callback
-)
+extern "C" auto serialAbortRead(int64_t handle_ptr, ErrorCallbackT error_callback) -> int
 {
     auto *handle = reinterpret_cast<SerialPortHandle *>(handle_ptr);
     if (handle == nullptr)

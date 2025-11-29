@@ -1,18 +1,19 @@
+#include "cpp_core/error_callback.h"
+#include "cpp_core/status_codes.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_open.h>
+#include <cstdint>
+#include <fcntl.h>
 #include <string_view>
+#include <termios.h>
+#include <unistd.h>
+#include <utility>
 
 using namespace serial_internal;
 
-extern "C" intptr_t serialOpen(
-    void          *port,
-    int            baudrate,
-    int            data_bits,
-    int            parity,
-    int            stop_bits,
-    ErrorCallbackT error_callback
-)
+extern "C" auto serialOpen(void *port, int baudrate, int data_bits, int parity, int stop_bits,
+                           ErrorCallbackT error_callback) -> intptr_t
 {
     if (port == nullptr)
     {
@@ -24,8 +25,8 @@ extern "C" intptr_t serialOpen(
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
-    std::string_view port_name{static_cast<const char *>(port)};
-    int              fd = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
+    std::string_view const port_name{static_cast<const char *>(port)};
+    int const fd = open(port_name.data(), O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0)
     {
         invokeError(

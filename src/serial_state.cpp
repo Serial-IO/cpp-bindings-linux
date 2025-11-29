@@ -1,3 +1,4 @@
+#include "cpp_core/error_callback.h"
 #include "serial_internal.hpp"
 
 namespace serial_internal

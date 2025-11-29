@@ -1,20 +1,17 @@
+#include "cpp_core/error_callback.h"
+#include "cpp_core/status_codes.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_read.h>
 #include <cpp_core/interface/serial_read_until_sequence.h>
+#include <cstdint>
 #include <cstring>
+#include <utility>
 
 using namespace serial_internal;
 
-extern "C" int serialReadUntilSequence(
-    int64_t        handle_ptr,
-    void          *buffer,
-    int            buffer_size,
-    int            timeout_ms,
-    int            multiplier,
-    void          *sequence_ptr,
-    ErrorCallbackT error_callback
-)
+extern "C" auto serialReadUntilSequence(int64_t handle_ptr, void *buffer, int buffer_size, int timeout_ms,
+                                        int multiplier, void *sequence_ptr, ErrorCallbackT error_callback) -> int
 {
     if (buffer == nullptr || buffer_size <= 0 || sequence_ptr == nullptr)
     {
@@ -45,13 +42,13 @@ extern "C" int serialReadUntilSequence(
 
     while (total < buffer_size)
     {
-        int bytes = serialRead(handle_ptr, char_buf + total, 1, timeout_ms, multiplier, error_callback);
+        int const bytes = serialRead(handle_ptr, char_buf + total, 1, timeout_ms, multiplier, error_callback);
         if (bytes <= 0)
         {
             return (bytes == 0) ? total : bytes;
         }
 
-        char current = char_buf[total];
+        char const current = char_buf[total];
         ++total;
 
         if (current == sequence_cstr[matched])

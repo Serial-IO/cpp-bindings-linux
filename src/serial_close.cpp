@@ -1,13 +1,17 @@
+#include "cpp_core/error_callback.h"
+#include "cpp_core/status_codes.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_close.h>
+#include <cstdint>
+#include <mutex>
+#include <termios.h>
+#include <unistd.h>
+#include <utility>
 
 using namespace serial_internal;
 
-extern "C" int serialClose(
-    int64_t        handle_ptr,
-    ErrorCallbackT error_callback
-)
+extern "C" auto serialClose(int64_t handle_ptr, ErrorCallbackT error_callback) -> int
 {
     auto *handle = reinterpret_cast<SerialPortHandle *>(handle_ptr);
     if (handle == nullptr)
@@ -16,7 +20,7 @@ extern "C" int serialClose(
         return 0;
     }
 
-    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+    std::scoped_lock const guard(handle->mtx);
 
     // Restore original settings and close the descriptor.
     if (tcsetattr(handle->fd, TCSANOW, &handle->original) != 0)

@@ -1,9 +1,12 @@
+#include "cpp_core/error_callback.h"
+#include "cpp_core/status_codes.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_list_ports.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <system_error>
 #include <utility>
 
 namespace
@@ -14,10 +17,7 @@ using serial_internal::g_error_callback;
 using serial_internal::invokeError;
 
 // Reads a single attribute file from a given directory. Returns empty string on error.
-std::string readAttr(
-    const fs::path    &dir,
-    const std::string &attr
-)
+auto readAttr(const fs::path &dir, const std::string &attr) -> std::string
 {
     std::ifstream file(dir / attr);
     if (!file.is_open())
@@ -40,12 +40,12 @@ struct UsbInfo
 };
 
 // Attempts to locate the USB device directory for a tty canonical path and collect attributes.
-UsbInfo collectUsbInfo(const fs::path &canonicalPath)
+auto collectUsbInfo(const fs::path &canonical_path) -> UsbInfo
 {
     UsbInfo info{};
 
     std::error_code error_code;
-    fs::path        tty_sys = fs::path{"/sys/class/tty"} / canonicalPath.filename() / "device";
+    fs::path tty_sys = fs::path{"/sys/class/tty"} / canonical_path.filename() / "device";
     tty_sys                 = fs::canonical(tty_sys, error_code);
     if (error_code)
     {
@@ -90,19 +90,9 @@ UsbInfo collectUsbInfo(const fs::path &canonicalPath)
 }
 
 // Handles a single directory entry. Returns true if a port was reported.
-bool handleEntry(
-    const fs::directory_entry &entry,
-    void (*callback)(
-        const char *,
-        const char *,
-        const char *,
-        const char *,
-        const char *,
-        const char *,
-        const char *,
-        const char *
-    )
-)
+auto handleEntry(const fs::directory_entry &entry,
+                 void (*callback)(const char *, const char *, const char *, const char *, const char *, const char *,
+                                  const char *, const char *)) -> bool
 {
     if (!entry.is_symlink())
     {
@@ -110,7 +100,7 @@ bool handleEntry(
     }
 
     std::error_code error_code;
-    fs::path        canonical = fs::canonical(entry.path(), error_code);
+    fs::path const canonical = fs::canonical(entry.path(), error_code);
     if (error_code)
     {
         return false;
@@ -119,7 +109,7 @@ bool handleEntry(
     const std::string port_path    = canonical.string();
     const std::string symlink_path = entry.path().string();
 
-    UsbInfo info = collectUsbInfo(canonical);
+    UsbInfo const info = collectUsbInfo(canonical);
 
     if (callback != nullptr)
     {
@@ -139,19 +129,11 @@ bool handleEntry(
 
 } // namespace
 
-extern "C" int serialListPorts(
-    void (*callback_fn)(
-        const char *port,
-        const char *path,
-        const char *manufacturer,
-        const char *serialNumber,
-        const char *pnpId,
-        const char *locationId,
-        const char *productId,
-        const char *vendorId
-    ),
-    ErrorCallbackT error_callback
-)
+extern "C" auto serialListPorts(void (*callback_fn)(const char *port, const char *path, const char *manufacturer,
+                                                    const char *serial_number, const char *pnp_id,
+                                                    const char *location_id, const char *product_id,
+                                                    const char *vendor_id),
+                                ErrorCallbackT error_callback) -> int
 {
     const fs::path by_id_dir{"/dev/serial/by-id"};
     if (!fs::exists(by_id_dir) || !fs::is_directory(by_id_dir))

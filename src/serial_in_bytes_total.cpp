@@ -1,13 +1,14 @@
+#include "cpp_core/error_callback.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_in_bytes_total.h>
+#include <cstdint>
+#include <mutex>
 
 using namespace serial_internal;
 
-extern "C" int64_t serialInBytesTotal(
-    int64_t handle_ptr,
-    ErrorCallbackT /*error_callback*/
-)
+extern "C" auto serialInBytesTotal(int64_t handle_ptr, ErrorCallbackT /*error_callback*/
+                                   ) -> int64_t
 {
     auto *handle = reinterpret_cast<SerialPortHandle *>(handle_ptr);
     if (handle == nullptr)
@@ -15,6 +16,6 @@ extern "C" int64_t serialInBytesTotal(
         return 0;
     }
 
-    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+    std::scoped_lock const guard(handle->mtx);
     return handle->rx_total;
 }

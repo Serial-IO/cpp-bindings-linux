@@ -1,17 +1,18 @@
+#include "cpp_core/error_callback.h"
+#include "cpp_core/status_codes.h"
 #include "serial_internal.hpp"
 
 #include <cpp_core/interface/serial_write.h>
+#include <cstdint>
+#include <mutex>
+#include <sys/types.h>
+#include <unistd.h>
+#include <utility>
 
 using namespace serial_internal;
 
-extern "C" int serialWrite(
-    int64_t     handle_ptr,
-    const void *buffer,
-    int         buffer_size,
-    int         timeout_ms,
-    int /*multiplier*/,
-    ErrorCallbackT error_callback
-)
+extern "C" auto serialWrite(int64_t handle_ptr, const void *buffer, int buffer_size, int timeout_ms, int /*multiplier*/,
+                            ErrorCallbackT error_callback) -> int
 {
     if (buffer == nullptr || buffer_size <= 0)
     {
@@ -29,7 +30,7 @@ extern "C" int serialWrite(
         return std::to_underlying(cpp_core::StatusCodes::kInvalidHandleError);
     }
 
-    std::lock_guard<std::recursive_mutex> guard(handle->mtx);
+    std::scoped_lock const guard(handle->mtx);
 
     // Abort?
     if (handle->abort_write.exchange(false))
@@ -42,7 +43,7 @@ extern "C" int serialWrite(
         return 0; // timeout
     }
 
-    ssize_t bytes_written = ::write(handle->fd, buffer, buffer_size);
+    ssize_t const bytes_written = ::write(handle->fd, buffer, buffer_size);
     if (bytes_written < 0)
     {
         invokeError(std::to_underlying(cpp_core::StatusCodes::kWriteError), "serialWrite: Write error", error_callback);
