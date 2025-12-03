@@ -55,26 +55,31 @@ CPMAddPackage(
     "gtest_force_shared_crt ON"
 )
 
-file(GLOB_RECURSE LIB_SOURCES
+file(
+    GLOB_RECURSE LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
 add_library(cpp_bindings_linux SHARED ${LIB_SOURCES})
 
-set_target_properties(cpp_bindings_linux PROPERTIES
+set_target_properties(
+    cpp_bindings_linux
+    PROPERTIES
     VERSION "${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH}"
     SOVERSION "${GIT_VERSION_MAJOR}"
     OUTPUT_NAME cpp_bindings_linux
 )
 
-target_include_directories(cpp_bindings_linux
+target_include_directories(
+    cpp_bindings_linux
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(cpp_bindings_linux
+target_link_libraries(
+    cpp_bindings_linux
     PUBLIC
     cpp_core::cpp_core
 )
@@ -85,20 +90,23 @@ target_compile_features(cpp_bindings_linux PUBLIC cxx_std_23)
 enable_testing()
 
 # Collect all test source files
-file(GLOB_RECURSE TEST_SOURCES
+file(
+    GLOB_RECURSE TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
 )
 
 if(TEST_SOURCES)
     add_executable(cpp_bindings_linux_tests ${TEST_SOURCES})
 
-    target_include_directories(cpp_bindings_linux_tests
+    target_include_directories(
+        cpp_bindings_linux_tests
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}/generated
     )
 
-    target_link_libraries(cpp_bindings_linux_tests
+    target_link_libraries(
+        cpp_bindings_linux_tests
         PRIVATE
         cpp_bindings_linux
         GTest::gtest
