@@ -2,7 +2,7 @@
 #include <cpp_core/status_codes.h>
 
 #include <cerrno>
-#include <cstring>
+#include <system_error>
 #include <unistd.h>
 
 extern "C"
@@ -20,7 +20,8 @@ extern "C"
         {
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kCloseHandleError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kCloseHandleError), error_msg.c_str());
             }
             return static_cast<int>(cpp_core::StatusCodes::kCloseHandleError);
         }

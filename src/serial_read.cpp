@@ -2,8 +2,8 @@
 #include <cpp_core/status_codes.h>
 
 #include <cerrno>
-#include <cstring>
 #include <poll.h>
+#include <system_error>
 #include <unistd.h>
 
 // NOLINTNEXTLINE(misc-use-anonymous-namespace)
@@ -37,7 +37,7 @@ static auto waitFdReady(int fd, int timeout_ms, bool for_read) -> int
 
 extern "C"
 {
-
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     MODULE_API auto serialRead(int64_t handle, void *buffer, int buffer_size, int timeout_ms, int /*multiplier*/,
                                ErrorCallbackT error_callback) -> int
     {
@@ -105,7 +105,8 @@ extern "C"
             }
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kReadError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kReadError), error_msg.c_str());
             }
             return static_cast<int>(cpp_core::StatusCodes::kReadError);
         }

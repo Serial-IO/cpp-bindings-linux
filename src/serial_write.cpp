@@ -2,9 +2,9 @@
 #include <cpp_core/status_codes.h>
 
 #include <cerrno>
-#include <cstring>
 #include <fcntl.h>
 #include <poll.h>
+#include <system_error>
 #include <termios.h>
 #include <unistd.h>
 
@@ -82,7 +82,8 @@ extern "C"
             {
                 if (error_callback != nullptr)
                 {
-                    error_callback(static_cast<int>(cpp_core::StatusCodes::kWriteError), strerror(errno));
+                    const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                    error_callback(static_cast<int>(cpp_core::StatusCodes::kWriteError), error_msg.c_str());
                 }
                 return static_cast<int>(cpp_core::StatusCodes::kWriteError);
             }

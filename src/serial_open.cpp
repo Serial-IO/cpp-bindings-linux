@@ -2,9 +2,9 @@
 #include <cpp_core/status_codes.h>
 
 #include <cerrno>
-#include <cstring>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <system_error>
 #include <termios.h>
 #include <unistd.h>
 
@@ -14,6 +14,8 @@
 #define BOTHER 0x010000
 #endif
 
+// NOLINTBEGIN
+// C Structure is defined by the kernel, so we cannot change it.
 struct termios2
 {
     tcflag_t c_iflag;
@@ -25,10 +27,11 @@ struct termios2
     speed_t c_ispeed;
     speed_t c_ospeed;
 };
+// NOLINTEND
 
 extern "C"
 {
-
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     MODULE_API auto serialOpen(void *port, int baudrate, int data_bits, int parity, int stop_bits,
                                ErrorCallbackT error_callback) -> intptr_t
     {
@@ -68,7 +71,8 @@ extern "C"
         {
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kNotFoundError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kNotFoundError), error_msg.c_str());
             }
             return static_cast<intptr_t>(cpp_core::StatusCodes::kNotFoundError);
         }
@@ -79,7 +83,8 @@ extern "C"
             close(fd);
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kGetStateError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kGetStateError), error_msg.c_str());
             }
             return static_cast<intptr_t>(cpp_core::StatusCodes::kGetStateError);
         }
@@ -154,7 +159,8 @@ extern "C"
             close(fd);
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), error_msg.c_str());
             }
             return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
         }
@@ -165,7 +171,8 @@ extern "C"
             close(fd);
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), error_msg.c_str());
             }
             return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
         }
@@ -176,7 +183,8 @@ extern "C"
             close(fd);
             if (error_callback != nullptr)
             {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), strerror(errno));
+                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
+                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), error_msg.c_str());
             }
             return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
         }
