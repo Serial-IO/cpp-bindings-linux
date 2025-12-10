@@ -24,8 +24,7 @@ class SerialArduinoTest : public ::testing::Test
                             "Make sure Arduino is connected and accessible.";
         }
 
-        // Wait for device to initialize after opening (e.g., Arduino reset)
-        usleep(2000000); // 2 seconds
+        usleep(2000000);
     }
 
     void TearDown() override
@@ -40,38 +39,31 @@ class SerialArduinoTest : public ::testing::Test
     intptr_t handle_ = 0;
 };
 
-// Test basic open/close
 TEST_F(SerialArduinoTest, OpenClose)
 {
     EXPECT_GT(handle_, 0) << "serialOpen should return a positive handle";
 }
 
-// Test write and read echo
 TEST_F(SerialArduinoTest, WriteReadEcho)
 {
     const char *test_message = "Hello Arduino!\n";
     int message_len = static_cast<int>(strlen(test_message));
 
-    // Write message
     int written = serialWrite(handle_, test_message, message_len, 1000, 1, nullptr);
     EXPECT_EQ(written, message_len) << "Should write all bytes. Written: " << written << ", Expected: " << message_len;
 
-    // Delay to allow Arduino to process and echo
-    usleep(500000); // 500ms - give Arduino more time
+    usleep(500000);
 
-    // Read echo back
     char read_buffer[256] = {0};
     int read_bytes = serialRead(handle_, read_buffer, sizeof(read_buffer) - 1, 2000, 1, nullptr);
 
     EXPECT_GT(read_bytes, 0) << "Should read at least some bytes";
     EXPECT_LE(read_bytes, static_cast<int>(sizeof(read_buffer) - 1)) << "Should not overflow buffer";
 
-    // Check if we got the echo
     read_buffer[read_bytes] = '\0';
     EXPECT_STRNE(read_buffer, "") << "Should receive echo from Arduino";
 }
 
-// Test multiple write/read cycles
 TEST_F(SerialArduinoTest, MultipleEchoCycles)
 {
     const char *messages[] = {"Test1\n", "Test2\n", "Test3\n"};
@@ -81,31 +73,24 @@ TEST_F(SerialArduinoTest, MultipleEchoCycles)
     {
         int msg_len = static_cast<int>(strlen(messages[i]));
 
-        // Write
         int written = serialWrite(handle_, messages[i], msg_len, 1000, 1, nullptr);
         EXPECT_EQ(written, msg_len) << "Cycle " << i << ": write failed";
 
-        // Delay to allow Arduino to process and echo
-        usleep(500000); // 500ms - give Arduino more time
+        usleep(500000);
 
-        // Read echo
         char read_buffer[256] = {0};
         int read_bytes = serialRead(handle_, read_buffer, sizeof(read_buffer) - 1, 2000, 1, nullptr);
         EXPECT_GT(read_bytes, 0) << "Cycle " << i << ": read failed";
     }
 }
 
-// Test timeout behavior
 TEST_F(SerialArduinoTest, ReadTimeout)
 {
     char buffer[256];
-    // Try to read with short timeout when no data is available
     int read_bytes = serialRead(handle_, buffer, sizeof(buffer), 100, 1, nullptr);
-    // Should return 0 on timeout (no error, just no data)
     EXPECT_GE(read_bytes, 0) << "Timeout should return 0, not error";
 }
 
-// Test invalid handle
 TEST(SerialInvalidHandleTest, InvalidHandleRead)
 {
     char buffer[256];
@@ -125,6 +110,5 @@ TEST(SerialInvalidHandleTest, InvalidHandleWrite)
 TEST(SerialInvalidHandleTest, InvalidHandleClose)
 {
     int result = serialClose(-1, nullptr);
-    // According to spec, closing invalid handle is a no-op
     EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kSuccess));
 }

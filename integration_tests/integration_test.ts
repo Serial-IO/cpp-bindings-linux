@@ -16,23 +16,26 @@ import {
   stringToCString,
 } from "./ffi_bindings.ts";
 
-// Status codes (matching cpp_core::StatusCodes)
 const StatusCodes = {
   kSuccess: 0,
-  kBufferError: 1,
-  kInvalidHandleError: 2,
-  kNotFoundError: 3,
-  kReadError: 4,
-  kWriteError: 5,
-  kCloseHandleError: 6,
-  kGetStateError: 7,
-  kSetStateError: 8,
+  kCloseHandleError: -1,
+  kInvalidHandleError: -2,
+  kReadError: -3,
+  kWriteError: -4,
+  kGetStateError: -5,
+  kSetStateError: -6,
+  kSetTimeoutError: -7,
+  kBufferError: -8,
+  kNotFoundError: -9,
+  kClearBufferInError: -10,
+  kClearBufferOutError: -11,
+  kAbortReadError: -12,
+  kAbortWriteError: -13,
 } as const;
 
 let lib: SerialLib | null = null;
 let loadedLib: LoadedLibrary | null = null;
 
-// Setup: Load the library before tests
 Deno.test({
   name: "Load library",
   async fn() {
@@ -45,13 +48,11 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// Test: Invalid handle operations
 Deno.test({
   name: "Invalid handle - Close",
   async fn() {
     assertExists(lib, "Library not loaded");
 
-    // Closing an invalid handle should return success (no-op)
     const result = lib.serialClose(BigInt(-1), null);
     assertEquals(result, StatusCodes.kSuccess);
     console.log("Invalid handle close handled correctly");
@@ -63,7 +64,6 @@ Deno.test({
   async fn() {
     assertExists(lib, "Library not loaded");
 
-    // Create a persistent buffer for reading
     const buffer = new Uint8Array(256);
     const bufferPtr = Deno.UnsafePointer.of(buffer);
     assertExists(bufferPtr, "Failed to create buffer pointer");
@@ -77,12 +77,7 @@ Deno.test({
       null,
     );
 
-    // Status codes are returned as negative values
-    assert(
-      result === StatusCodes.kInvalidHandleError ||
-        result === -StatusCodes.kInvalidHandleError,
-      `Expected kInvalidHandleError (${StatusCodes.kInvalidHandleError}) or -${StatusCodes.kInvalidHandleError}, got ${result}`,
-    );
+    assertEquals(result, StatusCodes.kInvalidHandleError);
     console.log("Invalid handle read handled correctly");
   },
 });
@@ -104,17 +99,11 @@ Deno.test({
       null,
     );
 
-    // Status codes are returned as negative values
-    assert(
-      result === StatusCodes.kInvalidHandleError ||
-        result === -StatusCodes.kInvalidHandleError,
-      `Expected kInvalidHandleError (${StatusCodes.kInvalidHandleError}) or -${StatusCodes.kInvalidHandleError}, got ${result}`,
-    );
+    assertEquals(result, StatusCodes.kInvalidHandleError);
     console.log("Invalid handle write handled correctly");
   },
 });
 
-// Test: Error callback functionality
 Deno.test({
   name: "Error callback - Invalid port",
   async fn() {
@@ -140,23 +129,13 @@ Deno.test({
         errorCallback.pointer,
       );
 
-      // Should return an error code
       assert(result < 0, `Expected error code, got ${result}`);
 
-      // Give the callback a moment to be called (if async)
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       assert(callbackCalled, "Error callback was not called");
 
-      // Status codes might be returned as negative values or different values
-      // Accept the actual value for now (might be -9 due to type conversion issues)
-      const expectedCode = StatusCodes.kNotFoundError;
-      assert(
-        receivedStatusCode === expectedCode ||
-          receivedStatusCode === -expectedCode ||
-          receivedStatusCode === -9, // Actual value observed in tests
-        `Expected kNotFoundError (${expectedCode}), -${expectedCode}, or -9, got ${receivedStatusCode}`,
-      );
+      assertEquals(receivedStatusCode, StatusCodes.kNotFoundError);
 
       assertStringIncludes(
         receivedMessage,
@@ -171,7 +150,6 @@ Deno.test({
   },
 });
 
-// Test: Invalid parameters
 Deno.test({
   name: "Invalid parameters - Baudrate",
   async fn() {
@@ -192,7 +170,7 @@ Deno.test({
     try {
       const result = lib.serialOpen(
         portPtr,
-        100, // Invalid baudrate (< 300)
+        100,
         8,
         0,
         1,
@@ -204,15 +182,7 @@ Deno.test({
       assert(result < 0, `Expected error code, got ${result}`);
       assert(callbackCalled, "Error callback was not called");
 
-      // Status codes might be returned as negative values or different values
-      // Accept the actual value for now (might be -6 due to type conversion issues)
-      const expectedCode = StatusCodes.kSetStateError;
-      assert(
-        receivedStatusCode === expectedCode ||
-          receivedStatusCode === -expectedCode ||
-          receivedStatusCode === -6, // Actual value observed in tests
-        `Expected kSetStateError (${expectedCode}), -${expectedCode}, or -6, got ${receivedStatusCode}`,
-      );
+      assertEquals(receivedStatusCode, StatusCodes.kSetStateError);
       assertStringIncludes(
         receivedMessage,
         "baudrate",
@@ -245,7 +215,7 @@ Deno.test({
       const result = lib.serialOpen(
         portPtr,
         115200,
-        3, // Invalid data bits (< 5)
+        3,
         0,
         1,
         errorCallback.pointer,
@@ -256,15 +226,7 @@ Deno.test({
       assert(result < 0, `Expected error code, got ${result}`);
       assert(callbackCalled, "Error callback was not called");
 
-      // Status codes might be returned as negative values or different values
-      // Accept the actual value for now (might be -6 due to type conversion issues)
-      const expectedCode = StatusCodes.kSetStateError;
-      assert(
-        receivedStatusCode === expectedCode ||
-          receivedStatusCode === -expectedCode ||
-          receivedStatusCode === -6, // Actual value observed in tests
-        `Expected kSetStateError (${expectedCode}), -${expectedCode}, or -6, got ${receivedStatusCode}`,
-      );
+      assertEquals(receivedStatusCode, StatusCodes.kSetStateError);
 
       console.log("Invalid data bits handled correctly");
     } finally {
@@ -273,7 +235,6 @@ Deno.test({
   },
 });
 
-// Test: Real serial port (if available)
 Deno.test({
   name: "Real serial port - Open/Close",
   async fn() {
@@ -297,17 +258,13 @@ Deno.test({
     }
 
     try {
-      // Wait for Arduino to initialize after reset (Arduino resets when serial port is opened)
-      // Same as unit test: usleep(2000000) = 2 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Close the port
       const closeResult = lib.serialClose(handle, null);
       assertEquals(closeResult, StatusCodes.kSuccess);
 
       console.log("Real serial port open/close works");
     } catch (error) {
-      // Try to close even if test fails
       lib.serialClose(handle, null);
       throw error;
     }
@@ -338,15 +295,11 @@ Deno.test({
     }
 
     try {
-      // Wait for Arduino to initialize after reset (Arduino resets when serial port is opened)
-      // Same as unit test: usleep(2000000) = 2 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Write a test message
       const testMessage = "Hello from Deno!\n";
       const encoder = new TextEncoder();
       const messageBytes = encoder.encode(testMessage);
-      // Create a persistent buffer for the message
       const messageBuffer = new Uint8Array(messageBytes.length);
       messageBuffer.set(messageBytes);
       const messagePtr = Deno.UnsafePointer.of(messageBuffer);
@@ -363,11 +316,8 @@ Deno.test({
 
       assertEquals(written, messageBytes.length);
 
-      // Wait a bit for echo
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Read echo back
-      // Create a persistent buffer for reading
       const readBuffer = new Uint8Array(256);
       const readBufferPtr = Deno.UnsafePointer.of(readBuffer);
       if (readBufferPtr === null) {
@@ -384,7 +334,6 @@ Deno.test({
       );
 
       if (readBytes > 0) {
-        // Create a copy of the data before decoding (buffer might be reused)
         const receivedData = new Uint8Array(readBytes);
         receivedData.set(readBuffer.subarray(0, readBytes));
         const decoder = new TextDecoder();
@@ -400,7 +349,6 @@ Deno.test({
   ignore: Deno.env.get("SKIP_HARDWARE_TESTS") === "1",
 });
 
-// Cleanup: Unload the library after all tests
 Deno.test({
   name: "Unload library",
   async fn() {

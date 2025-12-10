@@ -123,7 +123,7 @@ export function createErrorCallback(
     result: "void" as const,
   };
 
-  // @ts-expect-error - UnsafeCallback callback signature is complex in Deno 2.6.0
+  // @ts-expect-error - Bro trust me, nothing will go wrong here
   return new Deno.UnsafeCallback(
     definition,
     (
@@ -137,7 +137,6 @@ export function createErrorCallback(
         return;
       }
 
-      // Read the C string from the pointer
       const message = Deno.UnsafePointerView.getCString(messagePtr);
       callback(statusCode, message);
     },
@@ -146,13 +145,10 @@ export function createErrorCallback(
 
 /**
  * Helper to convert a string to a C string pointer
- * Note: The returned pointer is only valid as long as the buffer is in scope.
- * For longer-lived strings, use a persistent buffer.
  */
 export function stringToCString(str: string): Deno.PointerValue {
   const encoder = new TextEncoder();
   const encoded = encoder.encode(str + "\0");
-  // Create a buffer that will persist
   const buffer = new Uint8Array(encoded.length);
   buffer.set(encoded);
   const ptr = Deno.UnsafePointer.of(buffer);
