@@ -7,43 +7,43 @@ export type ErrorCallback = (statusCode: number, message: string) => void;
 
 // FFI symbol definitions
 export type SerialLib = {
-  readonly serialOpen: (
-    port: Deno.PointerValue,
-    baudrate: number,
-    dataBits: number,
-    parity: number,
-    stopBits: number,
-    errorCallback: Deno.PointerValue | null,
-  ) => bigint;
+    readonly serialOpen: (
+        port: Deno.PointerValue,
+        baudrate: number,
+        dataBits: number,
+        parity: number,
+        stopBits: number,
+        errorCallback: Deno.PointerValue | null,
+    ) => bigint;
 
-  readonly serialClose: (
-    handle: bigint,
-    errorCallback: Deno.PointerValue | null,
-  ) => number;
+    readonly serialClose: (
+        handle: bigint,
+        errorCallback: Deno.PointerValue | null,
+    ) => number;
 
-  readonly serialRead: (
-    handle: bigint,
-    buffer: Deno.PointerValue,
-    bufferSize: number,
-    timeoutMs: number,
-    multiplier: number,
-    errorCallback: Deno.PointerValue | null,
-  ) => number;
+    readonly serialRead: (
+        handle: bigint,
+        buffer: Deno.PointerValue,
+        bufferSize: number,
+        timeoutMs: number,
+        multiplier: number,
+        errorCallback: Deno.PointerValue | null,
+    ) => number;
 
-  readonly serialWrite: (
-    handle: bigint,
-    buffer: Deno.PointerValue,
-    bufferSize: number,
-    timeoutMs: number,
-    multiplier: number,
-    errorCallback: Deno.PointerValue | null,
-  ) => number;
+    readonly serialWrite: (
+        handle: bigint,
+        buffer: Deno.PointerValue,
+        bufferSize: number,
+        timeoutMs: number,
+        multiplier: number,
+        errorCallback: Deno.PointerValue | null,
+    ) => number;
 };
 
 // Library object type
 export type LoadedLibrary = {
-  symbols: SerialLib;
-  close: () => void;
+    symbols: SerialLib;
+    close: () => void;
 };
 
 /**
@@ -52,115 +52,115 @@ export type LoadedLibrary = {
  * @returns Object containing the symbols and a close method
  */
 export async function loadSerialLib(
-  libraryPath?: string,
+    libraryPath?: string,
 ): Promise<LoadedLibrary> {
-  // Try to find the library in common build locations
-  const possiblePaths = [
-    libraryPath,
-    "../build/libcpp_bindings_linux.so",
-    "../build/libcpp_bindings_linux.so.0",
-    "../build/libcpp_bindings_linux.so.0.0.0",
-    "../build/cpp_bindings_linux/libcpp_bindings_linux.so",
-    "./libcpp_bindings_linux.so",
-    "/usr/local/lib/libcpp_bindings_linux.so",
-  ].filter((p): p is string => p !== undefined);
+    // Try to find the library in common build locations
+    const possiblePaths = [
+        libraryPath,
+        "../build/libcpp_bindings_linux.so",
+        "../build/libcpp_bindings_linux.so.0",
+        "../build/libcpp_bindings_linux.so.0.0.0",
+        "../build/cpp_bindings_linux/libcpp_bindings_linux.so",
+        "./libcpp_bindings_linux.so",
+        "/usr/local/lib/libcpp_bindings_linux.so",
+    ].filter((p): p is string => p !== undefined);
 
-  let lib: { symbols: SerialLib; close: () => void } | null = null;
-  let lastError: Error | null = null;
+    let lib: { symbols: SerialLib; close: () => void } | null = null;
+    let lastError: Error | null = null;
 
-  const symbols = {
-    serialOpen: {
-      parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"] as const,
-      result: "i64" as const,
-    },
-    serialClose: {
-      parameters: ["i64", "pointer"] as const,
-      result: "i32" as const,
-    },
-    serialRead: {
-      parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
-      result: "i32" as const,
-    },
-    serialWrite: {
-      parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
-      result: "i32" as const,
-    },
-  };
+    const symbols = {
+        serialOpen: {
+            parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"] as const,
+            result: "i64" as const,
+        },
+        serialClose: {
+            parameters: ["i64", "pointer"] as const,
+            result: "i32" as const,
+        },
+        serialRead: {
+            parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
+            result: "i32" as const,
+        },
+        serialWrite: {
+            parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
+            result: "i32" as const,
+        },
+    };
 
-  for (const path of possiblePaths) {
-    try {
-      const loaded = Deno.dlopen(path, symbols) as {
-        symbols: SerialLib;
-        close: () => void;
-      };
-      lib = loaded;
-      break;
-    } catch (error) {
-      lastError = error as Error;
-      continue;
+    for (const path of possiblePaths) {
+        try {
+            const loaded = Deno.dlopen(path, symbols) as {
+                symbols: SerialLib;
+                close: () => void;
+            };
+            lib = loaded;
+            break;
+        } catch (error) {
+            lastError = error as Error;
+            continue;
+        }
     }
-  }
 
-  if (!lib) {
-    throw new Error(
-      `Failed to load cpp-bindings-linux library. Tried paths: ${
-        possiblePaths.join(", ")
-      }. Last error: ${lastError?.message}`,
-    );
-  }
+    if (!lib) {
+        throw new Error(
+            `Failed to load cpp-bindings-linux library. Tried paths: ${
+                possiblePaths.join(", ")
+            }. Last error: ${lastError?.message}`,
+        );
+    }
 
-  return lib;
+    return lib;
 }
 
 /**
  * Create an error callback function that can be passed to FFI
  */
 export function createErrorCallback(
-  callback: ErrorCallback,
+    callback: ErrorCallback,
 ) {
-  const definition = {
-    parameters: ["i32", "pointer"] as const,
-    result: "void" as const,
-  } as const;
+    const definition = {
+        parameters: ["i32", "pointer"] as const,
+        result: "void" as const,
+    } as const;
 
-  return new Deno.UnsafeCallback(
-    definition,
-    (
-      statusCode,
-      messagePtr,
-    ): void => {
-      if (messagePtr === null) {
-        callback(statusCode, "Unknown error");
-        return;
-      }
+    return new Deno.UnsafeCallback(
+        definition,
+        (
+            statusCode,
+            messagePtr,
+        ): void => {
+            if (messagePtr === null) {
+                callback(statusCode, "Unknown error");
+                return;
+            }
 
-      const message = Deno.UnsafePointerView.getCString(messagePtr);
-      callback(statusCode, message);
-    },
-  );
+            const message = Deno.UnsafePointerView.getCString(messagePtr);
+            callback(statusCode, message);
+        },
+    );
 }
 
 /**
  * Helper to convert a string to a C string pointer
  */
 export function stringToCString(str: string): Deno.PointerValue {
-  const encoder = new TextEncoder();
-  const encoded = encoder.encode(str + "\0");
-  const buffer = new Uint8Array(encoded.length);
-  buffer.set(encoded);
-  const ptr = Deno.UnsafePointer.of(buffer);
-  if (ptr === null) {
-    throw new Error("Failed to create pointer from string");
-  }
-  return ptr;
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(str + "\0");
+    const buffer = new Uint8Array(encoded.length);
+    buffer.set(encoded);
+    const ptr = Deno.UnsafePointer.of(buffer);
+    if (ptr === null) {
+        throw new Error("Failed to create pointer from string");
+    }
+    return ptr;
 }
 
 /**
  * Helper to read a C string from a pointer
  */
 export function cStringToString(ptr: Deno.PointerValue): string {
-  if (ptr === null) {
-    return "";
-  }
-  return Deno.UnsafePointerView.getCString(ptr);
+    if (ptr === null) {
+        return "";
+    }
+    return Deno.UnsafePointerView.getCString(ptr);
 }
