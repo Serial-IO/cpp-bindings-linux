@@ -117,21 +117,18 @@ export async function loadSerialLib(
  */
 export function createErrorCallback(
   callback: ErrorCallback,
-): Deno.UnsafeCallback {
+) {
   const definition = {
     parameters: ["i32", "pointer"] as const,
     result: "void" as const,
-  };
+  } as const;
 
-  // @ts-expect-error - Bro trust me, nothing will go wrong here
   return new Deno.UnsafeCallback(
     definition,
     (
-      ...args: (number | bigint | boolean | Deno.PointerValue | Uint8Array)[]
+      statusCode,
+      messagePtr,
     ): void => {
-      const statusCode = args[0] as number;
-      const messagePtr = args[1] as Deno.PointerValue;
-
       if (messagePtr === null) {
         callback(statusCode, "Unknown error");
         return;
