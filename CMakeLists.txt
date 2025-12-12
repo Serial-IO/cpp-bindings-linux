@@ -86,9 +86,6 @@ target_link_libraries(
 
 target_compile_features(cpp_bindings_linux PUBLIC cxx_std_23)
 
-
-enable_testing()
-
 # Collect all test source files
 file(
     GLOB_RECURSE TEST_SOURCES
@@ -115,9 +112,6 @@ if(TEST_SOURCES)
     )
 
     target_compile_features(cpp_bindings_linux_tests PRIVATE cxx_std_23)
-
-    include(GoogleTest)
-    gtest_discover_tests(cpp_bindings_linux_tests)
 endif()
 
 include(GNUInstallDirs)
@@ -142,3 +136,15 @@ install(
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     OPTIONAL
 )
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS AND EXISTS "${CMAKE_BINARY_DIR}/compile_commands.json")
+    add_custom_target(
+        copy-compile-commands
+        ALL
+        ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_BINARY_DIR}/compile_commands.json
+        ${CMAKE_SOURCE_DIR}/compile_commands.json
+        DEPENDS ${CMAKE_BINARY_DIR}/compile_commands.json
+        COMMENT "Copying compile_commands.json to project root"
+    )
+endif()
