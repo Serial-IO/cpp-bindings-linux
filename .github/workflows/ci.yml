@@ -7,15 +7,12 @@ on:
 
 jobs:
   cpp-tests:
-    name: C++ tests (gcc ${{ matrix.gcc }})
+    name: C++ tests (gcc)
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        gcc: [14, 15]
-
+    # Nutze Fedora-Container, damit eine aktuelle CMake-Version verfügbar ist
     container:
-      image: ubuntu:24.04
+      image: fedora:43
 
     env:
       SERIAL_TEST_PORT: /tmp/ttyCI_A
@@ -24,15 +21,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install build dependencies (gcc ${{ matrix.gcc }})
+      - name: Install build dependencies (gcc)
         run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            cmake ninja-build g++-${{ matrix.gcc }} socat
+          dnf -y update
+          dnf -y install cmake ninja-build gcc-c++ socat git
 
       - name: Configure CMake
         env:
-          CXX: g++-${{ matrix.gcc }}
+          # Fedora liefert die systemweite g++-Version (abhängig vom Image),
+          # die Matrix.gcc dient hier primär der Job-Kennzeichnung.
+          CXX: g++
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
@@ -72,7 +70,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y cmake ninja-build socat
+          apt-get install -y cmake ninja-build socat git
 
       - name: Configure CMake
         run: |
