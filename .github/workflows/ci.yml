@@ -10,7 +10,6 @@ jobs:
     name: C++ tests (gcc)
     runs-on: ubuntu-latest
 
-    # Nutze Fedora-Container, damit eine aktuelle CMake-Version verfügbar ist
     container:
       image: fedora:43
 
@@ -28,8 +27,6 @@ jobs:
 
       - name: Configure CMake
         env:
-          # Fedora liefert die systemweite g++-Version (abhängig vom Image),
-          # die Matrix.gcc dient hier primär der Job-Kennzeichnung.
           CXX: g++
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -70,9 +67,11 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y cmake ninja-build socat git
+          apt-get install -y cmake ninja-build g++ socat git
 
       - name: Configure CMake
+        env:
+          CXX: g++
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
