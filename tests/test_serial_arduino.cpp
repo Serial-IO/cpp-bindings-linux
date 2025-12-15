@@ -15,13 +15,14 @@ class SerialArduinoTest : public ::testing::Test
   protected:
     void SetUp() override
     {
-        const char *port = "/dev/ttyUSB0";
+        const char *env_port = std::getenv("SERIAL_TEST_PORT");
+        const char *port = env_port != nullptr ? env_port : "/dev/ttyUSB0";
         handle_ = serialOpen(const_cast<void *>(static_cast<const void *>(port)), 115200, 8, 0, 0, nullptr);
 
         if (handle_ <= 0)
         {
-            GTEST_SKIP() << "Could not open /dev/ttyUSB0. "
-                            "Make sure Arduino is connected and accessible.";
+            GTEST_SKIP() << "Could not open serial port '" << port
+                         << "'. Set SERIAL_TEST_PORT or connect Arduino on /dev/ttyUSB0.";
         }
 
         usleep(2000000);

@@ -1,11 +1,9 @@
 /**
- * FFI bindings for cpp-bindings-linux shared library
+ * Minimal FFI bindings for the cpp-bindings-linux shared library
+ * used by the Deno integration tests.
  */
 
-// Error callback type: (status_code: number, message: string) => void
-export type ErrorCallback = (statusCode: number, message: string) => void;
-
-// FFI symbol definitions
+// FFI symbol definitions required by the tests
 export type SerialLib = {
     readonly serialOpen: (
         port: Deno.PointerValue,
@@ -54,6 +52,9 @@ export type LoadedLibrary = {
 export async function loadSerialLib(
     libraryPath?: string,
 ): Promise<LoadedLibrary> {
+    // Ensure this stays an async function for API stability
+    await Promise.resolve();
+
     // Try to find the library in common build locations
     const possiblePaths = [
         libraryPath,
@@ -112,55 +113,5 @@ export async function loadSerialLib(
     return lib;
 }
 
-/**
- * Create an error callback function that can be passed to FFI
- */
-export function createErrorCallback(
-    callback: ErrorCallback,
-) {
-    const definition = {
-        parameters: ["i32", "pointer"] as const,
-        result: "void" as const,
-    } as const;
-
-    return new Deno.UnsafeCallback(
-        definition,
-        (
-            statusCode,
-            messagePtr,
-        ): void => {
-            if (messagePtr === null) {
-                callback(statusCode, "Unknown error");
-                return;
-            }
-
-            const message = Deno.UnsafePointerView.getCString(messagePtr);
-            callback(statusCode, message);
-        },
-    );
-}
-
-/**
- * Helper to convert a string to a C string pointer
- */
-export function stringToCString(str: string): Deno.PointerValue {
-    const encoder = new TextEncoder();
-    const encoded = encoder.encode(str + "\0");
-    const buffer = new Uint8Array(encoded.length);
-    buffer.set(encoded);
-    const ptr = Deno.UnsafePointer.of(buffer);
-    if (ptr === null) {
-        throw new Error("Failed to create pointer from string");
-    }
-    return ptr;
-}
-
-/**
- * Helper to read a C string from a pointer
- */
-export function cStringToString(ptr: Deno.PointerValue): string {
-    if (ptr === null) {
-        return "";
-    }
-    return Deno.UnsafePointerView.getCString(ptr);
-}
+// Note: helpers for error callbacks and CString handling were removed
+// here on purpose, as they are no longer needed by the minimal tests.
