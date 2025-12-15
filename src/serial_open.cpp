@@ -11,6 +11,12 @@
 #ifndef TCGETS2
 #define TCGETS2 0x802C542A
 #define TCSETS2 0x402C542B
+#endif
+
+// Some libcs (or kernel headers) may not define BOTHER even if TCGETS2 exists.
+// Define it here if missing so the build works in minimal environments
+// (e.g., Deno's Debian-based CI containers).
+#ifndef BOTHER
 #define BOTHER 0x010000
 #endif
 
