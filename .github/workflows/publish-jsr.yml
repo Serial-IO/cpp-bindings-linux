@@ -52,7 +52,7 @@ jobs:
         run: |
           deno run --allow-read --allow-write jsr/scripts/embed_so.ts \
             build/libcpp_bindings_linux.so \
-            jsr/bin/linux-x86_64.json \
+            jsr/bin/x84_64.json \
             linux-x86_64
 
       - name: Publish package to JSR

@@ -9,7 +9,7 @@ first-class artifacts.
 Import the JSON and write the `.so` to disk (consumer project example):
 
 ```ts
-import blob from "@serial/cpp-bindings-linux/linux-x86_64" with {
+import blob from "@serial/cpp-bindings-linux/x84_64" with {
     type: "json",
 };
 
