@@ -4,39 +4,7 @@
 #include "detail/posix_helpers.hpp"
 
 #include <cerrno>
-#include <poll.h>
 #include <unistd.h>
-
-namespace
-{
-auto waitFdReady(int fd, int timeout_ms, bool for_read) -> int
-{
-    struct pollfd pfd = {};
-    pfd.fd = fd;
-    pfd.events = for_read ? POLLIN : POLLOUT;
-    pfd.revents = 0;
-
-    const int result = poll(&pfd, 1, timeout_ms);
-
-    if (result < 0)
-    {
-        return -1;
-    }
-    if (result == 0)
-    {
-        return 0;
-    }
-    if (for_read && ((pfd.revents & POLLIN) != 0))
-    {
-        return 1;
-    }
-    if (!for_read && ((pfd.revents & POLLOUT) != 0))
-    {
-        return 1;
-    }
-    return 0;
-}
-} // namespace
 
 extern "C"
 {
@@ -58,8 +26,12 @@ extern "C"
         const int fd = static_cast<int>(handle);
         auto *buf = static_cast<unsigned char *>(buffer);
 
-        const int ready = waitFdReady(fd, timeout_ms, true);
-        if (ready <= 0)
+        const int ready = cpp_bindings_linux::detail::waitFdReady(fd, timeout_ms, true);
+        if (ready < 0)
+        {
+            return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+        }
+        if (ready == 0)
         {
             return 0;
         }
@@ -82,7 +54,12 @@ extern "C"
         // Some drivers can report readiness but still return 0; give it a tiny grace period and retry once.
         if (bytes_read == 0)
         {
-            if (waitFdReady(fd, 10, true) <= 0)
+            const int retry_ready = cpp_bindings_linux::detail::waitFdReady(fd, 10, true);
+            if (retry_ready < 0)
+            {
+                return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+            }
+            if (retry_ready == 0)
             {
                 return 0;
             }
@@ -96,7 +73,12 @@ extern "C"
         int total_read = static_cast<int>(bytes_read);
         while (total_read < buffer_size)
         {
-            if (waitFdReady(fd, 0, true) <= 0)
+            const int loop_ready = cpp_bindings_linux::detail::waitFdReady(fd, 0, true);
+            if (loop_ready < 0)
+            {
+                return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+            }
+            if (loop_ready == 0)
             {
                 break;
             }

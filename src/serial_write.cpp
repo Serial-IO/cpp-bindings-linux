@@ -5,38 +5,8 @@
 
 #include <cerrno>
 #include <fcntl.h>
-#include <poll.h>
 #include <termios.h>
 #include <unistd.h>
-
-// NOLINTNEXTLINE(misc-use-anonymous-namespace)
-static auto waitFdReady(int fd, int timeout_ms, bool for_read) -> int
-{
-    struct pollfd pfd = {};
-    pfd.fd = fd;
-    pfd.events = for_read ? POLLIN : POLLOUT;
-    pfd.revents = 0;
-
-    const int result = poll(&pfd, 1, timeout_ms);
-
-    if (result < 0)
-    {
-        return -1;
-    }
-    if (result == 0)
-    {
-        return 0;
-    }
-    if (for_read && ((pfd.revents & POLLIN) != 0))
-    {
-        return 1;
-    }
-    if (!for_read && ((pfd.revents & POLLOUT) != 0))
-    {
-        return 1;
-    }
-    return 0;
-}
 
 extern "C"
 {
@@ -63,7 +33,13 @@ extern "C"
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                if (waitFdReady(fd, timeout_ms, false) > 0)
+                const int ready = cpp_bindings_linux::detail::waitFdReady(fd, timeout_ms, false);
+                if (ready < 0)
+                {
+                    return cpp_bindings_linux::detail::failErrno<int>(error_callback,
+                                                                      cpp_core::StatusCodes::kWriteError);
+                }
+                if (ready > 0)
                 {
                     bytes_written = ::write(fd, buffer, buffer_size);
                 }

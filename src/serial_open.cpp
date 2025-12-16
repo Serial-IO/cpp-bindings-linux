@@ -102,6 +102,10 @@ extern "C"
         tty.c_cflag &= ~(PARENB | PARODD);
         switch (parity)
         {
+        // parity mapping:
+        //   0 = no parity
+        //   1 = even parity
+        //   2 = odd parity
         case 0:
             break;
         case 1:
@@ -115,6 +119,14 @@ extern "C"
                                                                  "Invalid parity");
         }
 
+        // stop_bits mapping:
+        //   0 or 1 = 1 stop bit (0 kept for backward compatibility with callers using "default")
+        //   2      = 2 stop bits
+        if (stop_bits != 0 && stop_bits != 1 && stop_bits != 2)
+        {
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                                                 "Invalid stop bits: must be 0, 1, or 2");
+        }
         if (stop_bits == 2)
         {
             tty.c_cflag |= CSTOPB;
@@ -137,19 +149,8 @@ extern "C"
                                                                    cpp_core::StatusCodes::kSetStateError);
         }
 
-        int flags = fcntl(handle.get(), F_GETFL);
-        if (flags < 0)
-        {
-            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
-                                                                   cpp_core::StatusCodes::kSetStateError);
-        }
-        flags &= ~O_NONBLOCK;
-        const int set_flags_result = fcntl(handle.get(), F_SETFL, flags);
-        if (set_flags_result != 0)
-        {
-            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
-                                                                   cpp_core::StatusCodes::kSetStateError);
-        }
+        // Keep O_NONBLOCK enabled. Our read/write APIs implement timeouts via poll(),
+        // and leaving the FD non-blocking prevents any unexpected blocking syscalls.
 
         tcflush(handle.get(), TCIOFLUSH);
 

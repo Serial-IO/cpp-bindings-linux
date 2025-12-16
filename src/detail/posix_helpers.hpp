@@ -3,6 +3,7 @@
 #include <cpp_core/status_codes.h>
 
 #include <cerrno>
+#include <poll.h>
 #include <string>
 #include <system_error>
 #include <unistd.h>
@@ -92,5 +93,34 @@ inline auto failErrno(Callback error_callback, cpp_core::StatusCodes code) -> Re
         error_callback(static_cast<int>(code), error_msg.c_str());
     }
     return static_cast<Ret>(code);
+}
+
+// Poll helper used by read/write to implement timeouts.
+// Returns: -1 on poll error, 0 on timeout/not-ready, 1 on ready.
+inline auto waitFdReady(int file_descriptor, int timeout_ms, bool for_read) -> int
+{
+    struct pollfd poll_fd = {};
+    poll_fd.fd = file_descriptor;
+    poll_fd.events = for_read ? POLLIN : POLLOUT;
+    poll_fd.revents = 0;
+
+    const int poll_result = poll(&poll_fd, 1, timeout_ms);
+    if (poll_result < 0)
+    {
+        return -1;
+    }
+    if (poll_result == 0)
+    {
+        return 0;
+    }
+    if (for_read && ((poll_fd.revents & POLLIN) != 0))
+    {
+        return 1;
+    }
+    if (!for_read && ((poll_fd.revents & POLLOUT) != 0))
+    {
+        return 1;
+    }
+    return 0;
 }
 } // namespace cpp_bindings_linux::detail
