@@ -1,0 +1,22 @@
+{
+  "name": "@serial/cpp-bindings-linux",
+  "version": "@PROJECT_VERSION@",
+  "description": "Linux shared-library bindings for Serial-IO/cpp-core (distributed via JSON/base64 because JSR has limited binary support).",
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "publish": {
+    "include": [
+      "README.md",
+      "jsr.json",
+      "mod.ts",
+      "ffi.ts",
+      "binaries/**"
+    ],
+    "exclude": [
+      "scripts/**"
+    ]
+  }
+}
+
+
