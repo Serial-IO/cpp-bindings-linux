@@ -1,9 +1,10 @@
 #include <cpp_core/interface/serial_read.h>
 #include <cpp_core/status_codes.h>
 
+#include "detail/posix_helpers.hpp"
+
 #include <cerrno>
 #include <poll.h>
-#include <system_error>
 #include <unistd.h>
 
 // NOLINTNEXTLINE(misc-use-anonymous-namespace)
@@ -43,20 +44,14 @@ extern "C"
     {
         if (buffer == nullptr || buffer_size <= 0)
         {
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kBufferError), "Invalid buffer or buffer_size");
-            }
-            return static_cast<int>(cpp_core::StatusCodes::kBufferError);
+            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kBufferError,
+                                                            "Invalid buffer or buffer_size");
         }
 
         if (handle <= 0)
         {
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError), "Invalid handle");
-            }
-            return static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError);
+            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kInvalidHandleError,
+                                                            "Invalid handle");
         }
 
         const int fd = static_cast<int>(handle);
@@ -103,12 +98,7 @@ extern "C"
             {
                 return 0;
             }
-            if (error_callback != nullptr)
-            {
-                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kReadError), error_msg.c_str());
-            }
-            return static_cast<int>(cpp_core::StatusCodes::kReadError);
+            return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
         }
 
         if (bytes_read == 0)

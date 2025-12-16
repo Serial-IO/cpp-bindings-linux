@@ -1,10 +1,10 @@
 #include <cpp_core/interface/serial_open.h>
 #include <cpp_core/status_codes.h>
 
-#include <cerrno>
+#include "detail/posix_helpers.hpp"
+
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <system_error>
 #include <termios.h>
 #include <unistd.h>
 
@@ -37,62 +37,41 @@ struct termios2
 
 extern "C"
 {
-    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     MODULE_API auto serialOpen(void *port, int baudrate, int data_bits, int parity, int stop_bits,
                                ErrorCallbackT error_callback) -> intptr_t
     {
         if (port == nullptr)
         {
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kNotFoundError), "Port parameter is nullptr");
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kNotFoundError);
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kNotFoundError,
+                                                                 "Port parameter is nullptr");
         }
 
         if (baudrate < 300)
         {
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError),
-                               "Invalid baudrate: must be >= 300");
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                                                 "Invalid baudrate: must be >= 300");
         }
 
         if (data_bits < 5 || data_bits > 8)
         {
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError),
-                               "Invalid data bits: must be 5-8");
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                                                 "Invalid data bits: must be 5-8");
         }
 
         const char *port_path = static_cast<const char *>(port);
 
-        const int fd = open(port_path, O_RDWR | O_NOCTTY | O_NONBLOCK);
-        if (fd < 0)
+        cpp_bindings_linux::detail::UniqueFd handle(open(port_path, O_RDWR | O_NOCTTY | O_NONBLOCK));
+        if (!handle.valid())
         {
-            if (error_callback != nullptr)
-            {
-                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kNotFoundError), error_msg.c_str());
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kNotFoundError);
+            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
+                                                                   cpp_core::StatusCodes::kNotFoundError);
         }
 
         struct termios2 tty = {};
-        if (ioctl(fd, TCGETS2, &tty) != 0)
+        if (ioctl(handle.get(), TCGETS2, &tty) != 0)
         {
-            close(fd);
-            if (error_callback != nullptr)
-            {
-                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kGetStateError), error_msg.c_str());
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kGetStateError);
+            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
+                                                                   cpp_core::StatusCodes::kGetStateError);
         }
 
         tty.c_cflag &= ~CBAUD;
@@ -116,12 +95,8 @@ extern "C"
             tty.c_cflag |= CS8;
             break;
         default:
-            close(fd);
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), "Invalid data bits");
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                                                 "Invalid data bits");
         }
 
         tty.c_cflag &= ~(PARENB | PARODD);
@@ -136,12 +111,8 @@ extern "C"
             tty.c_cflag |= (PARENB | PARODD);
             break;
         default:
-            close(fd);
-            if (error_callback != nullptr)
-            {
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), "Invalid parity");
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                                                 "Invalid parity");
         }
 
         if (stop_bits == 2)
@@ -160,48 +131,33 @@ extern "C"
         tty.c_cc[VMIN] = 0;
         tty.c_cc[VTIME] = 0;
 
-        if (ioctl(fd, TCSETS2, &tty) != 0)
+        if (ioctl(handle.get(), TCSETS2, &tty) != 0)
         {
-            close(fd);
-            if (error_callback != nullptr)
-            {
-                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), error_msg.c_str());
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
+                                                                   cpp_core::StatusCodes::kSetStateError);
         }
 
-        int flags = fcntl(fd, F_GETFL);
+        int flags = fcntl(handle.get(), F_GETFL);
         if (flags < 0)
         {
-            close(fd);
-            if (error_callback != nullptr)
-            {
-                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), error_msg.c_str());
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
+                                                                   cpp_core::StatusCodes::kSetStateError);
         }
         flags &= ~O_NONBLOCK;
-        const int set_flags_result = fcntl(fd, F_SETFL, flags);
+        const int set_flags_result = fcntl(handle.get(), F_SETFL, flags);
         if (set_flags_result != 0)
         {
-            close(fd);
-            if (error_callback != nullptr)
-            {
-                const std::string error_msg = std::error_code(errno, std::generic_category()).message();
-                error_callback(static_cast<int>(cpp_core::StatusCodes::kSetStateError), error_msg.c_str());
-            }
-            return static_cast<intptr_t>(cpp_core::StatusCodes::kSetStateError);
+            return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
+                                                                   cpp_core::StatusCodes::kSetStateError);
         }
 
-        tcflush(fd, TCIOFLUSH);
+        tcflush(handle.get(), TCIOFLUSH);
 
         // Note: Some devices (e.g., Arduino) reset when the serial port is opened.
         // It is recommended to wait 1-2 seconds after opening before sending data
         // to allow the device to initialize.
 
-        return static_cast<intptr_t>(fd);
+        return static_cast<intptr_t>(handle.release());
     }
 
 } // extern "C"
