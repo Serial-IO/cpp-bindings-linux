@@ -12,13 +12,10 @@ namespace
 {
 auto makePipeNonBlockingCloexec(std::array<int, 2> &out_pipe) -> bool
 {
-#ifdef __linux__
-    // pipe2 is Linux-specific, which is fine for this bindings library.
     if (::pipe2(out_pipe.data(), O_NONBLOCK | O_CLOEXEC) == 0)
     {
         return true;
     }
-#endif
 
     if (::pipe(out_pipe.data()) != 0)
     {
