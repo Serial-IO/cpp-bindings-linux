@@ -5,6 +5,7 @@
 
 #include <cerrno>
 #include <fcntl.h>
+#include <limits>
 #include <termios.h>
 #include <unistd.h>
 
@@ -20,7 +21,7 @@ extern "C"
                                                             "Invalid buffer or buffer_size");
         }
 
-        if (handle <= 0)
+        if (handle <= 0 || handle > std::numeric_limits<int>::max())
         {
             return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kInvalidHandleError,
                                                             "Invalid handle");

@@ -3,6 +3,7 @@
 
 #include "detail/posix_helpers.hpp"
 
+#include <limits>
 #include <unistd.h>
 
 extern "C"
@@ -13,6 +14,11 @@ extern "C"
         if (handle <= 0)
         {
             return static_cast<int>(cpp_core::StatusCodes::kSuccess);
+        }
+        if (handle > std::numeric_limits<int>::max())
+        {
+            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kInvalidHandleError,
+                                                            "Invalid handle");
         }
 
         const int fd = static_cast<int>(handle);
