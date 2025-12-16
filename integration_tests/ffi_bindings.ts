@@ -5,38 +5,38 @@
 
 // FFI symbol definitions required by the tests
 export type SerialLib = {
-    readonly serialOpen: (
+    serialOpen: (
         port: Deno.PointerValue,
         baudrate: number,
         dataBits: number,
         parity: number,
         stopBits: number,
-        errorCallback: Deno.PointerValue | null,
+        errorCallback: Deno.PointerValue,
     ) => bigint;
 
-    readonly serialClose: (
+    serialClose: (
         handle: bigint,
-        errorCallback: Deno.PointerValue | null,
+        errorCallback: Deno.PointerValue,
     ) => number;
 
-    readonly serialRead: (
+    serialRead: (
         handle: bigint,
         buffer: Deno.PointerValue,
         bufferSize: number,
         timeoutMs: number,
         multiplier: number,
-        errorCallback: Deno.PointerValue | null,
+        errorCallback: Deno.PointerValue,
     ) => number;
 
-    readonly serialWrite: (
+    serialWrite: (
         handle: bigint,
         buffer: Deno.PointerValue,
         bufferSize: number,
         timeoutMs: number,
         multiplier: number,
-        errorCallback: Deno.PointerValue | null,
+        errorCallback: Deno.PointerValue,
     ) => number;
-};
+} as const;
 
 // Library object type
 export type LoadedLibrary = {
