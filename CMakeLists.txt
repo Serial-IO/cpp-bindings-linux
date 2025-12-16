@@ -43,7 +43,7 @@ set(CMAKE_CXX_MODULE_EXTENSIONS OFF)
 CPMAddPackage(
     NAME cpp_core
     GITHUB_REPOSITORY Serial-IO/cpp-core
-    GIT_TAG bump-version-from-git-versioning
+    GIT_TAG main
     OPTIONS
     "CMAKE_EXPORT_COMPILE_COMMANDS OFF"
 )
