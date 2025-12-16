@@ -3,45 +3,26 @@
  * used by the Deno integration tests.
  */
 
-// FFI symbol definitions required by the tests
-export type SerialLib = {
-    readonly serialOpen: (
-        port: Deno.PointerValue,
-        baudrate: number,
-        dataBits: number,
-        parity: number,
-        stopBits: number,
-        errorCallback: Deno.PointerValue,
-    ) => bigint;
+export type LoadedLibrary = Deno.DynamicLibrary<typeof symbols>;
+export type SerialLib = LoadedLibrary["symbols"];
 
-    readonly serialClose: (
-        handle: bigint,
-        errorCallback: Deno.PointerValue,
-    ) => number;
-
-    readonly serialRead: (
-        handle: bigint,
-        buffer: Deno.PointerValue,
-        bufferSize: number,
-        timeoutMs: number,
-        multiplier: number,
-        errorCallback: Deno.PointerValue,
-    ) => number;
-
-    readonly serialWrite: (
-        handle: bigint,
-        buffer: Deno.PointerValue,
-        bufferSize: number,
-        timeoutMs: number,
-        multiplier: number,
-        errorCallback: Deno.PointerValue,
-    ) => number;
-};
-
-// Library object type
-export type LoadedLibrary = {
-    symbols: SerialLib;
-    close: () => void;
+const symbols = {
+    serialOpen: {
+        parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"] as const,
+        result: "i64" as const,
+    },
+    serialClose: {
+        parameters: ["i64", "pointer"] as const,
+        result: "i32" as const,
+    },
+    serialRead: {
+        parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
+        result: "i32" as const,
+    },
+    serialWrite: {
+        parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
+        result: "i32" as const,
+    },
 };
 
 /**
@@ -66,34 +47,12 @@ export async function loadSerialLib(
         "/usr/local/lib/libcpp_bindings_linux.so",
     ].filter((p): p is string => p !== undefined);
 
-    let lib: { symbols: SerialLib; close: () => void } | null = null;
+    let lib: LoadedLibrary | null = null;
     let lastError: Error | null = null;
-
-    const symbols = {
-        serialOpen: {
-            parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"] as const,
-            result: "i64" as const,
-        },
-        serialClose: {
-            parameters: ["i64", "pointer"] as const,
-            result: "i32" as const,
-        },
-        serialRead: {
-            parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
-            result: "i32" as const,
-        },
-        serialWrite: {
-            parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
-            result: "i32" as const,
-        },
-    };
 
     for (const path of possiblePaths) {
         try {
-            const loaded = Deno.dlopen(path, symbols) as {
-                symbols: SerialLib;
-                close: () => void;
-            };
+            const loaded = Deno.dlopen(path, symbols) as LoadedLibrary;
             lib = loaded;
             break;
         } catch (error) {
