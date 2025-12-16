@@ -1,6 +1,6 @@
 // Usage:
 //   deno run --allow-read --allow-write jsr/scripts/embed_so.ts \
-//     ./build/libcpp_bindings_linux.so ./jsr/binaries/linux-x86_64.json linux-x86_64
+//     ./build/libcpp_bindings_linux.so ./jsr/bin/linux-x86_64.json linux-x86_64
 //
 // This converts the shared library into a JSON file containing base64 data for publishing to JSR.
 
@@ -23,7 +23,7 @@ if (import.meta.main) {
     const [inPath, outPath, target = "linux-x86_64"] = Deno.args;
     if (!inPath || !outPath) {
         console.error(
-            "Expected: <input .so path> <output .json path> [target]\nExample: build/libcpp_bindings_linux.so jsr/binaries/linux-x86_64.json linux-x86_64",
+            "Expected: <input .so path> <output .json path> [target]\nExample: build/libcpp_bindings_linux.so jsr/bin/linux-x86_64.json linux-x86_64",
         );
         Deno.exit(2);
     }

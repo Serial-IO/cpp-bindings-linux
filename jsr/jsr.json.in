@@ -4,15 +4,13 @@
   "license": "LGPL-3.0-only",
   "description": "Linux shared-library bindings for Serial-IO/cpp-core (distributed via JSON/base64 because JSR has limited binary support).",
   "exports": {
-    ".": "./mod.ts"
+    "./linux-x86_64": "./bin/linux-x86_64.json"
   },
   "publish": {
     "include": [
       "README.md",
       "jsr.json",
-      "mod.ts",
-      "ffi.ts",
-      "binaries/**"
+      "bin/**"
     ],
     "exclude": [
       "scripts/**"
