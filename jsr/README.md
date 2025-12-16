@@ -29,3 +29,8 @@ lib.close();
 - `--allow-ffi`
 - `--allow-read`
 - `--allow-write` (only needed if you use the embedded binary extraction path)
+
+## License
+
+This package is licensed under **LGPL-3.0-only** (see the repository root
+`LICENSE`).
