@@ -7,8 +7,9 @@
 #include <poll.h>
 #include <unistd.h>
 
-// NOLINTNEXTLINE(misc-use-anonymous-namespace)
-static auto waitFdReady(int fd, int timeout_ms, bool for_read) -> int
+namespace
+{
+auto waitFdReady(int fd, int timeout_ms, bool for_read) -> int
 {
     struct pollfd pfd = {};
     pfd.fd = fd;
@@ -35,10 +36,10 @@ static auto waitFdReady(int fd, int timeout_ms, bool for_read) -> int
     }
     return 0;
 }
+} // namespace
 
 extern "C"
 {
-    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     MODULE_API auto serialRead(int64_t handle, void *buffer, int buffer_size, int timeout_ms, int /*multiplier*/,
                                ErrorCallbackT error_callback) -> int
     {
@@ -57,65 +58,36 @@ extern "C"
         const int fd = static_cast<int>(handle);
         auto *buf = static_cast<unsigned char *>(buffer);
 
-        int elapsed_ms = 0;
-        const int poll_interval = 10;
-        bool data_ready = false;
-
-        while (elapsed_ms < timeout_ms)
-        {
-            struct pollfd pfd = {};
-            pfd.fd = fd;
-            pfd.events = POLLIN;
-            pfd.revents = 0;
-
-            const int remaining_ms = timeout_ms - elapsed_ms;
-            const int poll_timeout = (remaining_ms < poll_interval) ? remaining_ms : poll_interval;
-
-            const int poll_result = poll(&pfd, 1, poll_timeout);
-            if (poll_result > 0 && ((pfd.revents & POLLIN) != 0))
-            {
-                data_ready = true;
-                break;
-            }
-            if (poll_result < 0)
-            {
-                return 0;
-            }
-
-            elapsed_ms += poll_interval;
-        }
-
-        if (!data_ready)
+        const int ready = waitFdReady(fd, timeout_ms, true);
+        if (ready <= 0)
         {
             return 0;
         }
 
-        ssize_t bytes_read = ::read(fd, buf, buffer_size);
-
-        if (bytes_read < 0)
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
+        const auto try_read_once = [&](unsigned char *dst, int size) -> ssize_t {
+            const ssize_t bytes = ::read(fd, dst, size);
+            if (bytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
             {
                 return 0;
             }
+            return bytes;
+        };
+
+        ssize_t bytes_read = try_read_once(buf, buffer_size);
+        if (bytes_read < 0)
+        {
             return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
         }
 
+        // Some drivers can report readiness but still return 0; give it a tiny grace period and retry once.
         if (bytes_read == 0)
         {
-            struct pollfd pfd = {};
-            pfd.fd = fd;
-            pfd.events = POLLIN;
-            pfd.revents = 0;
-            if (poll(&pfd, 1, 10) > 0 && ((pfd.revents & POLLIN) != 0))
+            if (waitFdReady(fd, 10, true) <= 0)
             {
-                bytes_read = ::read(fd, buf, buffer_size);
-                if (bytes_read <= 0)
-                {
-                    return 0;
-                }
+                return 0;
             }
-            else
+            bytes_read = try_read_once(buf, buffer_size);
+            if (bytes_read <= 0)
             {
                 return 0;
             }
@@ -124,17 +96,11 @@ extern "C"
         int total_read = static_cast<int>(bytes_read);
         while (total_read < buffer_size)
         {
-            struct pollfd pfd = {};
-            pfd.fd = fd;
-            pfd.events = POLLIN;
-            pfd.revents = 0;
-
-            if (poll(&pfd, 1, 0) <= 0 || ((pfd.revents & POLLIN) == 0))
+            if (waitFdReady(fd, 0, true) <= 0)
             {
                 break;
             }
-
-            const ssize_t more_bytes = ::read(fd, buf + total_read, buffer_size - total_read);
+            const ssize_t more_bytes = try_read_once(buf + total_read, buffer_size - total_read);
             if (more_bytes <= 0)
             {
                 break;
