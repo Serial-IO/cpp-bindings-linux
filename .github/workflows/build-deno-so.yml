@@ -8,16 +8,22 @@ on:
 jobs:
   build-deno-so:
     name: Build shared library for Deno
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+
+    container:
+      image: ubuntu:20.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build g++ git
+          apt-get update
+          apt-get install -y --no-install-recommends ninja-build g++ git ca-certificates
+          rm -rf /var/lib/apt/lists/*
 
       - name: Setup CMake >= 3.30
         uses: jwlawson/actions-setup-cmake@v2
