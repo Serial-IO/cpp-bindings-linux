@@ -58,6 +58,9 @@ jobs:
       - name: Publish package to JSR
         working-directory: jsr
         run: |
-          deno publish
+          # CMake + embed_so.ts generate files (jsr/jsr.json + binaries/*.json),
+          # which makes the worktree dirty. Publishing is still deterministic because
+          # the workflow builds + generates in a single run.
+          deno publish --allow-dirty
 
 
