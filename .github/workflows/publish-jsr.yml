@@ -1,0 +1,66 @@
+name: Publish to JSR (@serial/cpp-bindings-linux)
+
+on:
+  workflow_dispatch:
+    inputs: {}
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-jsr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build g++ git ca-certificates
+
+      - name: Setup CMake >= 3.30
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: "3.31.x"
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.6.0"
+
+      - name: Configure CMake (Release)
+        env:
+          CXX: g++
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build shared library
+        run: |
+          cmake --build build --config Release
+
+      - name: Embed .so as JSON/base64 for JSR
+        run: |
+          deno run --allow-read --allow-write jsr/scripts/embed_so.ts \
+            build/libcpp_bindings_linux.so \
+            jsr/bin/x84_64.json \
+            linux-x86_64
+
+      - name: Publish package to JSR
+        working-directory: jsr
+        run: |
+          # CMake + embed_so.ts generate files (jsr/jsr.json + binaries/*.json),
+          # which makes the worktree dirty. Publishing is still deterministic because
+          # the workflow builds + generates in a single run.
+          deno publish --allow-dirty
+
+
