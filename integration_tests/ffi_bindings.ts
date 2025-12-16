@@ -5,7 +5,7 @@
 
 // FFI symbol definitions required by the tests
 export type SerialLib = {
-    serialOpen: (
+    readonly serialOpen: (
         port: Deno.PointerValue,
         baudrate: number,
         dataBits: number,
@@ -14,12 +14,12 @@ export type SerialLib = {
         errorCallback: Deno.PointerValue,
     ) => bigint;
 
-    serialClose: (
+    readonly serialClose: (
         handle: bigint,
         errorCallback: Deno.PointerValue,
     ) => number;
 
-    serialRead: (
+    readonly serialRead: (
         handle: bigint,
         buffer: Deno.PointerValue,
         bufferSize: number,
@@ -28,7 +28,7 @@ export type SerialLib = {
         errorCallback: Deno.PointerValue,
     ) => number;
 
-    serialWrite: (
+    readonly serialWrite: (
         handle: bigint,
         buffer: Deno.PointerValue,
         bufferSize: number,
@@ -36,7 +36,7 @@ export type SerialLib = {
         multiplier: number,
         errorCallback: Deno.PointerValue,
     ) => number;
-} as const;
+};
 
 // Library object type
 export type LoadedLibrary = {
