@@ -8,7 +8,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME cmake_git_versioning
     GITHUB_REPOSITORY Katze719/cmake-git-versioning
-    GIT_TAG v1.0.0
+    GIT_TAG v1.0.1
 )
 
 # Include cmake-git-versioning module
@@ -43,7 +43,7 @@ set(CMAKE_CXX_MODULE_EXTENSIONS OFF)
 CPMAddPackage(
     NAME cpp_core
     GITHUB_REPOSITORY Serial-IO/cpp-core
-    GIT_TAG main
+    GIT_TAG bump-version-from-git-versioning
     OPTIONS
     "CMAKE_EXPORT_COMPILE_COMMANDS OFF"
 )
