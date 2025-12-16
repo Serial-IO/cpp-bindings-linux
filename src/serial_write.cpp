@@ -1,12 +1,12 @@
 #include <cpp_core/interface/serial_write.h>
 #include <cpp_core/status_codes.h>
 
+#include "detail/abort_registry.hpp"
 #include "detail/posix_helpers.hpp"
 
 #include <cerrno>
 #include <fcntl.h>
 #include <limits>
-#include <termios.h>
 #include <unistd.h>
 
 extern "C"
@@ -28,17 +28,24 @@ extern "C"
         }
 
         const int fd = static_cast<int>(handle);
+        const auto abort_pipes = cpp_bindings_linux::detail::getAbortPipesForFd(fd);
+        const int abort_fd = abort_pipes ? abort_pipes->write_abort_r : -1;
 
         ssize_t bytes_written = ::write(fd, buffer, buffer_size);
         if (bytes_written < 0)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                const int ready = cpp_bindings_linux::detail::waitFdReady(fd, timeout_ms, false);
+                const int ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, timeout_ms, false);
                 if (ready < 0)
                 {
                     return cpp_bindings_linux::detail::failErrno<int>(error_callback,
                                                                       cpp_core::StatusCodes::kWriteError);
+                }
+                if (ready == 2)
+                {
+                    cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
+                    return static_cast<int>(cpp_core::StatusCodes::kAbortWriteError);
                 }
                 if (ready > 0)
                 {
@@ -55,8 +62,6 @@ extern "C"
                 return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kWriteError);
             }
         }
-
-        tcdrain(fd);
 
         return static_cast<int>(bytes_written);
     }

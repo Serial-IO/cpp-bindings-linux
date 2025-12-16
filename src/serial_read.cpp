@@ -1,6 +1,7 @@
 #include <cpp_core/interface/serial_read.h>
 #include <cpp_core/status_codes.h>
 
+#include "detail/abort_registry.hpp"
 #include "detail/posix_helpers.hpp"
 
 #include <cerrno>
@@ -27,10 +28,18 @@ extern "C"
         const int fd = static_cast<int>(handle);
         auto *buf = static_cast<unsigned char *>(buffer);
 
-        const int ready = cpp_bindings_linux::detail::waitFdReady(fd, timeout_ms, true);
+        const auto abort_pipes = cpp_bindings_linux::detail::getAbortPipesForFd(fd);
+        const int abort_fd = abort_pipes ? abort_pipes->read_abort_r : -1;
+
+        const int ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, timeout_ms, true);
         if (ready < 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+        }
+        if (ready == 2)
+        {
+            cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
+            return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
         }
         if (ready == 0)
         {
@@ -55,10 +64,15 @@ extern "C"
         // Some drivers can report readiness but still return 0; give it a tiny grace period and retry once.
         if (bytes_read == 0)
         {
-            const int retry_ready = cpp_bindings_linux::detail::waitFdReady(fd, 10, true);
+            const int retry_ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, 10, true);
             if (retry_ready < 0)
             {
                 return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+            }
+            if (retry_ready == 2)
+            {
+                cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
+                return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
             }
             if (retry_ready == 0)
             {
@@ -74,10 +88,15 @@ extern "C"
         int total_read = static_cast<int>(bytes_read);
         while (total_read < buffer_size)
         {
-            const int loop_ready = cpp_bindings_linux::detail::waitFdReady(fd, 0, true);
+            const int loop_ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, 0, true);
             if (loop_ready < 0)
             {
                 return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+            }
+            if (loop_ready == 2)
+            {
+                cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
+                return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
             }
             if (loop_ready == 0)
             {
