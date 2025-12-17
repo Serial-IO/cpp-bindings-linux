@@ -47,7 +47,6 @@ jobs:
         working-directory: integration_tests
         env:
           SERIAL_TEST_PORT: /tmp/ttyCI_A
-          SERIAL_TEST_SKIP_INIT_DELAY: "1"
         run: |
           deno task test
 

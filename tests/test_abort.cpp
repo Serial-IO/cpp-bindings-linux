@@ -11,7 +11,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstring>
 #include <thread>
 
 #include <fcntl.h>
