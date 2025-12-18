@@ -17,7 +17,7 @@ mkdir -p "$JSR_BIN_PATH"
 
 cp "$BINARY_PATH" "$JSR_BIN_PATH/x86_64.so"
 
-# base64 without linebreak (GNU + BSD kompatibel)
+# base64 without linebreak (GNU + BSD compatible)
 BASE64_DATA="$(base64 "$BINARY_PATH" | tr -d '\n')"
 
 cat > "$JSR_BIN_PATH/x86_64.json" <<EOF
