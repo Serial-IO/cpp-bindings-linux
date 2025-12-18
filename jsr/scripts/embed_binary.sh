@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-if [ "$#" -ne 2 ]; then
-  echo "Usage: $0 <binaryPath> <target>" >&2
+if [ "$#" -ne 3 ]; then
+  echo "Usage: $0 <binaryPath> <jsrBinPath> <target>" >&2
   exit 1
 fi
 
