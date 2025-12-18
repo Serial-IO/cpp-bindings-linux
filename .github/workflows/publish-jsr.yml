@@ -61,7 +61,7 @@ jobs:
           cp LICENSE ./jsr/package/LICENSE
 
       - name: Publish package to JSR (real)
-        if: github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref_type == 'tag'
         working-directory: jsr/package
         run: |
           deno publish --allow-dirty
