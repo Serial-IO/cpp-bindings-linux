@@ -4,7 +4,7 @@
   "license": "LGPL-3.0-only",
   "description": "Linux shared-library bindings for Serial-IO/cpp-core (distributed via JSON/base64 because JSR has limited binary support).",
   "exports": {
-    "./x84_64": "./bin/x84_64.json"
+    "./bin/x84_64": "./bin/x84_64.json"
   },
   "publish": {
     "include": [
