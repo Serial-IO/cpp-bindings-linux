@@ -13,12 +13,12 @@ JSR_BIN_PATH="./jsr/package/bin"
 
 mkdir -p "$JSR_BIN_PATH"
 
-cp "$BINARY_PATH" "$JSR_BIN_PATH/x84_64.so"
+cp "$BINARY_PATH" "$JSR_BIN_PATH/x86_64.so"
 
 # base64 without linebreak (GNU + BSD kompatibel)
 BASE64_DATA="$(base64 "$BINARY_PATH" | tr -d '\n')"
 
-cat > "$JSR_BIN_PATH/x84_64.json" <<EOF
+cat > "$JSR_BIN_PATH/x86_64.json" <<EOF
 {
   "target": "$TARGET",
   "filename": "$BINARY_PATH",
