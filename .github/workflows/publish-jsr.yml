@@ -55,7 +55,8 @@ jobs:
       - name: Embed binary as JSON/base64 for JSR
         run: |
           ./jsr/scripts/embed_binary.sh \
-            build/libcpp_bindings_linux.so \
+            ./build/libcpp_bindings_linux.so \
+            ./jsr/package/bin \
             linux-x86_64
           cp LICENSE ./jsr/package/LICENSE
 

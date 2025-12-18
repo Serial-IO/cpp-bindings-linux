@@ -7,15 +7,20 @@ if [ "$#" -ne 2 ]; then
 fi
 
 BINARY_PATH=$1
-TARGET=$2
+JSR_BIN_PATH=$2
+TARGET=$3
 
 if [ ! -f "$BINARY_PATH" ]; then
-  echo "Error: binaryPath is not a file: $BINARY_PATH" >&2
+  echo "Error: Binary path is not a file: $BINARY_PATH" >&2
+  exit 1
+fi
+
+if [ ! -d "$JSR_BIN_PATH" ]; then
+  echo "Error: JSR bin path is not a directory: $JSR_BIN_PATH" >&2
   exit 1
 fi
 
 FILENAME=$(basename "$BINARY_PATH")
-JSR_BIN_PATH="./jsr/package/bin"
 
 mkdir -p "$JSR_BIN_PATH"
 
