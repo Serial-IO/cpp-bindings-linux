@@ -17,8 +17,3 @@ Deno.writeFileSync(tempFilePath, bytes, { mode: 0o755 });
 
 // Now you can open the binary using for example `Deno.dlopen`
 ```
-
-## License
-
-This package is licensed under **LGPL-3.0-only** (see the repository root
-`LICENSE`).
