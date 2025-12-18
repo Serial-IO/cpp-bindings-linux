@@ -40,7 +40,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.6.0"
+          deno-version: "2.x"
 
       - name: Configure CMake (Release)
         env:
@@ -54,10 +54,10 @@ jobs:
 
       - name: Embed binary as JSON/base64 for JSR
         run: |
-          deno run --allow-read --allow-write jsr/scripts/embed_binary.ts \
-            --binaryPath="build/libcpp_bindings_linux.so" \
-            --target="linux-x86_64"
-      
+          ./jsr/scripts/embed_binary.sh \
+            build/libcpp_bindings_linux.so \
+            linux-x86_64
+
       - name: Publish package to JSR (real)
         if: github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/')
         working-directory: jsr
