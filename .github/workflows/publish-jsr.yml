@@ -57,6 +57,7 @@ jobs:
           ./jsr/scripts/embed_binary.sh \
             build/libcpp_bindings_linux.so \
             linux-x86_64
+          cp LICENSE ./jsr/package/LICENSE
 
       - name: Publish package to JSR (real)
         if: github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/')
