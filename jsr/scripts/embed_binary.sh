@@ -15,11 +15,6 @@ if [ ! -f "$BINARY_PATH" ]; then
   exit 1
 fi
 
-if [ ! -d "$JSR_BIN_PATH" ]; then
-  echo "Error: JSR bin path is not a directory: $JSR_BIN_PATH" >&2
-  exit 1
-fi
-
 FILENAME=$(basename "$BINARY_PATH")
 
 mkdir -p "$JSR_BIN_PATH"
