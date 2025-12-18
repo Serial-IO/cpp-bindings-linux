@@ -67,7 +67,7 @@ jobs:
           deno publish --allow-dirty
 
       - name: Publish package to JSR (dry-run)
-        if: github.ref_name != 'main' && !startsWith(github.ref, 'refs/tags/')
+        if: github.ref_type != 'tag'
         working-directory: jsr/package
         run: |
           deno publish --allow-dirty --dry-run
