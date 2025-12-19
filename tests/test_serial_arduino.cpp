@@ -20,6 +20,26 @@
 #include <thread>
 #include <unistd.h>
 
+namespace
+{
+auto drainInput(intptr_t handle) -> void
+{
+    std::array<unsigned char, 256> tmp = {};
+    for (;;)
+    {
+        const int res = serialRead(handle, tmp.data(), static_cast<int>(tmp.size()), 10, 0, nullptr);
+        if (res < 0)
+        {
+            FAIL() << "drainInput failed with error " << res;
+        }
+        if (res == 0)
+        {
+            return;
+        }
+    }
+}
+} // namespace
+
 class SerialArduinoTest : public ::testing::Test
 {
   protected:
@@ -106,6 +126,27 @@ TEST_F(SerialArduinoTest, ReadTimeout)
     std::array<char, 256> buffer = {};
     int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 100, 1, nullptr);
     EXPECT_GE(read_bytes, 0) << "Timeout should return 0, not error";
+}
+
+TEST_F(SerialArduinoTest, Read60BytesWithoutWritingTimesOut)
+{
+    drainInput(handle);
+    std::array<unsigned char, 60> buffer = {};
+    const int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 200, 1, nullptr);
+    EXPECT_EQ(read_bytes, 0) << "Expected timeout (0 bytes) when no data is sent";
+}
+
+TEST_F(SerialArduinoTest, Write10BytesRead60Returns10ThenTimesOut)
+{
+    drainInput(handle);
+    const std::array<unsigned char, 10> payload = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    const int written = serialWrite(handle, payload.data(), static_cast<int>(payload.size()), 2000, 1, nullptr);
+    ASSERT_EQ(written, static_cast<int>(payload.size()));
+
+    std::array<unsigned char, 60> buffer = {};
+    const int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 200, 1, nullptr);
+    EXPECT_EQ(read_bytes, static_cast<int>(payload.size()))
+        << "Expected to read the 10 echoed bytes, then timeout waiting for more";
 }
 
 TEST_F(SerialArduinoTest, AbortRead)
