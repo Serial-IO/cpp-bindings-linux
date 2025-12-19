@@ -1,6 +1,7 @@
 #include <cpp_core/interface/serial_close.h>
 #include <cpp_core/status_codes.h>
 
+#include "detail/abort_registry.hpp"
 #include "detail/posix_helpers.hpp"
 
 #include <limits>
@@ -22,6 +23,7 @@ extern "C"
         }
 
         const int fd = static_cast<int>(handle);
+        cpp_bindings_linux::detail::unregisterAbortPipesForFd(fd);
         if (close(fd) != 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kCloseHandleError);
