@@ -8,7 +8,7 @@ blob**.
 Import the JSON and write the `.so` to disk (consumer project example):
 
 ```ts
-import blob from "@serial/cpp-bindings-linux/x84_64" with { type: "json" };
+import blob from "@serial/cpp-bindings-linux/bin/x84_64" with { type: "json" };
 
 const bytes = new TextEncoder().encode(atob(blob.data));
 
@@ -17,8 +17,3 @@ Deno.writeFileSync(tempFilePath, bytes, { mode: 0o755 });
 
 // Now you can open the binary using for example `Deno.dlopen`
 ```
-
-## License
-
-This package is licensed under **LGPL-3.0-only** (see the repository root
-`LICENSE`).

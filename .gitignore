@@ -26,6 +26,7 @@ compile_commands.json
 # Generated files
 generated/
 src/version_config.cpp
+*.so
 
 # OS
 .DS_Store

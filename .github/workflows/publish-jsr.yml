@@ -3,7 +3,11 @@ name: Publish to JSR (@serial/cpp-bindings-linux)
 on:
   workflow_dispatch:
     inputs: {}
+
   push:
+    branches:
+      - '*'
+
     tags:
       - "v*"
 
@@ -36,7 +40,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.6.0"
+          deno-version: "2.x"
 
       - name: Configure CMake (Release)
         env:
@@ -48,19 +52,22 @@ jobs:
         run: |
           cmake --build build --config Release
 
-      - name: Embed .so as JSON/base64 for JSR
+      - name: Embed binary as JSON/base64 for JSR
         run: |
-          deno run --allow-read --allow-write jsr/scripts/embed_so.ts \
-            build/libcpp_bindings_linux.so \
-            jsr/bin/x84_64.json \
+          ./jsr/scripts/embed_binary.sh \
+            ./build/libcpp_bindings_linux.so \
+            ./jsr/package/bin \
             linux-x86_64
+          cp LICENSE ./jsr/package/LICENSE
 
-      - name: Publish package to JSR
-        working-directory: jsr
+      - name: Publish package to JSR (real)
+        if: github.ref_type == 'tag'
+        working-directory: jsr/package
         run: |
-          # CMake + embed_so.ts generate files (jsr/jsr.json + binaries/*.json),
-          # which makes the worktree dirty. Publishing is still deterministic because
-          # the workflow builds + generates in a single run.
           deno publish --allow-dirty
 
-
+      - name: Publish package to JSR (dry-run)
+        if: github.ref_type != 'tag'
+        working-directory: jsr/package
+        run: |
+          deno publish --allow-dirty --dry-run
