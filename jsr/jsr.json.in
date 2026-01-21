@@ -2,15 +2,16 @@
   "name": "@serial/cpp-bindings-linux",
   "version": "@PROJECT_VERSION@",
   "license": "LICENSE",
-  "description": "Linux shared-library bindings for Serial-IO/cpp-core (distributed via JSON/base64 because JSR has limited binary support).",
+  "description": "C++ Linux Bindings for the serial library",
   "exports": {
-    "./bin/x86_64": "./bin/x86_64.json"
+    "./bin": "./src/bin/index.ts"
   },
   "publish": {
     "include": [
       "README.md",
       "LICENSE",
       "jsr.json",
+      "src/**",
       "bin/**"
     ]
   }
