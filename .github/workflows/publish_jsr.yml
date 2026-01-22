@@ -44,7 +44,7 @@ jobs:
 
       - name: 'Prepare files for JSR'
         run: |
-          cp ./artifacts/jsr/jsr.json ./jsr/jsr.json
+          cp ./artifacts/jsr.json ./jsr/jsr.json
           cp ./LICENSE ./jsr/LICENSE
 
           ./jsr/scripts/embed_binary.sh \
