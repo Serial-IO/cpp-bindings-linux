@@ -5,7 +5,7 @@ description: |
 
 on:
   workflow_run:
-    workflows: ["Build Binary"]
+    workflows: ['Build Binary']
     types:
       - completed
 
