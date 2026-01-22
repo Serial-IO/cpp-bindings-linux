@@ -35,7 +35,7 @@ jobs:
         with:
           cmake-version: '3.31.x'
 
-      - name: 'Configure CMake (Release)'
+      - name: 'Configure CMake'
         env:
           CXX: g++
 
