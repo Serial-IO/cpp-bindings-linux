@@ -60,6 +60,7 @@ jobs:
       version: ${{ steps.build.outputs.VERSION }}
 
   trigger-publish:
+    name: 'Trigger Publish'
     needs: ['build-binary']
     uses: ./.github/workflows/publish_jsr.yml
     with:
