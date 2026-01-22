@@ -50,10 +50,9 @@ jobs:
         run: |
           mkdir -p ./jsr/bin
           
-          cp ./LICENSE ./jsr/LICENSE
           cp ./artifacts/libcpp_bindings_linux.so ./jsr/bin/x86_64.so
 
-          sed "s/@PROJECT_VERSION@/${{ inputs.version }}/g" jsr/jsr.json.in > jsr/jsr.json
+          ./jsr/scripts/set_version.sh jsr/jsr.json "${{ inputs.version }}"
 
           ./jsr/scripts/binary_to_json.sh \
             ./artifacts/libcpp_bindings_linux.so \

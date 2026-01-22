@@ -1,4 +1,2 @@
-jsr.json
-
 bin/
 !src/bin/

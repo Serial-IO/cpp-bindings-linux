@@ -1,6 +1,6 @@
 {
   "name": "@serial/cpp-bindings-linux",
-  "version": "@PROJECT_VERSION@",
+  "version": "0.1.0",
   "license": "LICENSE",
   "description": "C++ Linux Bindings for the serial library",
   "exports": {
