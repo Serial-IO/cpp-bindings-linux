@@ -1,7 +1,7 @@
 {
   "name": "@serial/cpp-bindings-linux",
   "version": "0.1.0",
-  "license": "LICENSE",
+  "license": "./LICENSE",
   "description": "C++ Linux Bindings for the serial library",
   "exports": {
     "./bin": "./src/bin/index.ts"
