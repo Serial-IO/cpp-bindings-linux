@@ -66,4 +66,5 @@ jobs:
       publish: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       version: ${{ needs.build-binary.outputs.version }}
       artifact-name: libcpp_bindings_linux_x86_64
-
+    
+    secrets: inherit
