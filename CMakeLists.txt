@@ -23,13 +23,7 @@ project(
     LANGUAGES CXX
 )
 
-# Generate JSR package metadata from the same git-derived version as the library.
-# We generate into the build directory to avoid touching tracked files during normal local builds.
-configure_file(
-    "${CMAKE_SOURCE_DIR}/jsr/jsr.json.in"
-    "${CMAKE_BINARY_DIR}/jsr/jsr.json"
-    @ONLY
-)
+file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${PROJECT_VERSION}")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)

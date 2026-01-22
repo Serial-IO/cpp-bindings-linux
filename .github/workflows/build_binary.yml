@@ -42,18 +42,28 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-      - name: 'Build binary'
+      - name: 'Build'
+        id: 'build'
         run: |
           cmake --build build --config Release
 
-      - name: 'Upload artifacts (binary)'
+          VERSION=$(cat build/version.txt)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 'Upload artifacts'
         uses: actions/upload-artifact@v4
         with:
           name: libcpp_bindings_linux_x86_64
           path: build/libcpp_bindings_linux.so*
+    
+    outputs:
+      version: ${{ steps.build.outputs.VERSION }}
 
-      - name: 'Upload artifacts (JSR)'
-        uses: actions/upload-artifact@v4
-        with:
-          name: jsr_json
-          path: build/jsr/jsr.json
+  trigger-publish:
+    needs: ['build-binary']
+    uses: ./.github/workflows/publish_jsr.yml
+    with:
+      publish: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      version: ${{ needs.build-binary.outputs.version }}
+      artifact-name: libcpp_bindings_linux_x86_64
+
