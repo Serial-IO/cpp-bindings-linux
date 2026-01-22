@@ -19,6 +19,8 @@ FILENAME=$(basename "$BINARY_PATH")
 
 mkdir -p "$JSR_BIN_PATH"
 
+cp "$BINARY_PATH" "$JSR_BIN_PATH/x86_64.so"
+
 BASE64_DATA=$(base64 "$BINARY_PATH" | tr -d '\n')
 
 jq -n \
