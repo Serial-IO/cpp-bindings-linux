@@ -23,7 +23,7 @@ project(
     LANGUAGES CXX
 )
 
-file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "VERSION=${PROJECT_VERSION}")
+file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "export VERSION=${PROJECT_VERSION}")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)

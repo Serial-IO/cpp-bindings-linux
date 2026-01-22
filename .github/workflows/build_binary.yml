@@ -47,7 +47,7 @@ jobs:
         run: |
           cmake --build build --config Release
 
-          source build/version.sh
+          . build/env.sh
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: 'Upload artifacts'
