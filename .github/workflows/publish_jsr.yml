@@ -28,16 +28,24 @@ jobs:
         with:
           deno-version: '2.x'
       
-      - name: 'Download artifact'
+      - name: 'Download artifact (binary)'
         uses: actions/download-artifact@v4
         with:
           path: 'artifacts'
           name: 'libcpp_bindings_linux_x86_64'
           run-id: ${{ github.event.workflow_run.id }}
 
+      - name: 'Download artifact (JSR)'
+        uses: actions/download-artifact@v4
+        with:
+          path: 'artifacts'
+          name: 'jsr_json'
+          run-id: ${{ github.event.workflow_run.id }}
+
       - name: 'Prepare files for JSR'
         run: |
-          cp LICENSE ./jsr/LICENSE
+          cp ./artifacts/jsr/jsr.json ./jsr/jsr.json
+          cp ./LICENSE ./jsr/LICENSE
 
           ./jsr/scripts/embed_binary.sh \
             ./artifacts/libcpp_bindings_linux.so \
