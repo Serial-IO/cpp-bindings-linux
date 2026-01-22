@@ -55,7 +55,7 @@ jobs:
 
           sed "s/@PROJECT_VERSION@/${{ inputs.version }}/g" jsr/jsr.json.in > jsr/jsr.json
 
-          ./jsr/scripts/embed_binary.sh \
+          ./jsr/scripts/binary_to_json.sh \
             ./artifacts/libcpp_bindings_linux.so \
             ./jsr/bin \
             linux-x86_64
