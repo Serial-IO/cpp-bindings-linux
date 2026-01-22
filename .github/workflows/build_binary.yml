@@ -21,7 +21,6 @@ jobs:
       - name: 'Checkout repository'
         uses: actions/checkout@v4
         with:
-          fetch-tags: true
           fetch-depth: 0
 
       - name: 'Install dependencies'
@@ -29,6 +28,8 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
 
         run: |
+          git tag
+
           apt-get update
           apt-get install -y --no-install-recommends ninja-build g++ git ca-certificates
           rm -rf /var/lib/apt/lists/*
@@ -51,7 +52,6 @@ jobs:
           cmake --build build --config Release
 
           . build/env.sh
-          cat build/env.sh
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: 'Upload artifacts'
