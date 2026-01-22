@@ -2,24 +2,24 @@
 set -eu
 
 if [ "$#" -ne 3 ]; then
-  echo "Usage: $0 <binaryPath> <jsrBinPath> <target>" >&2
+  echo "Usage: $0 <binaryFilePath> <JsonFilePath> <target>" >&2
   exit 1
 fi
 
-BINARY_PATH=$1
-JSR_BIN_PATH=$2
+BINARY_FILE_PATH=$1
+JSON_FILE_PATH=$2
 TARGET=$3
 
-if [ ! -f "$BINARY_PATH" ]; then
-  echo "Error: Binary path is not a file: $BINARY_PATH" >&2
+if [ ! -f "$BINARY_FILE_PATH" ]; then
+  echo "Error: Binary path is not a file: $BINARY_FILE_PATH" >&2
   exit 1
 fi
 
-FILENAME=$(basename "$BINARY_PATH")
+FILENAME=$(basename "$BINARY_FILE_PATH")
 
-mkdir -p "$JSR_BIN_PATH"
+mkdir -p $(basename "$JSON_FILE_PATH")
 
-BASE64_DATA=$(base64 "$BINARY_PATH" | tr -d '\n')
+BASE64_DATA=$(base64 "$BINARY_FILE_PATH" | tr -d '\n')
 
 jq -n \
   --arg target "$TARGET" \
@@ -30,4 +30,4 @@ jq -n \
     filename: $filename,
     encoding: "base64",
     data: $data
-  }' > "$JSR_BIN_PATH/x86_64.json"
+  }' > "$JSON_FILE_PATH"

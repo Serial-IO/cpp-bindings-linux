@@ -57,7 +57,7 @@ jobs:
 
           ./jsr/scripts/binary_to_json.sh \
             ./artifacts/libcpp_bindings_linux.so \
-            ./jsr/bin \
+            ./jsr/bin/x86_64.json \
             linux-x86_64
       
       - name: 'Publish package to JSR'
