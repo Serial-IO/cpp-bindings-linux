@@ -28,8 +28,6 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
 
         run: |
-          git tag
-
           apt-get update
           apt-get install -y --no-install-recommends ninja-build g++ git ca-certificates
           rm -rf /var/lib/apt/lists/*
