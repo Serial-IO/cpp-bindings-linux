@@ -30,7 +30,7 @@ jobs:
           apt-get install -y --no-install-recommends ninja-build g++ git ca-certificates
           rm -rf /var/lib/apt/lists/*
 
-      - name: 'Setup CMake >= 3.30'
+      - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.31.x'
