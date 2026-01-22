@@ -27,7 +27,7 @@ project(
 # We generate into the build directory to avoid touching tracked files during normal local builds.
 configure_file(
     "${CMAKE_SOURCE_DIR}/jsr/jsr.json.in"
-    "${CMAKE_SOURCE_DIR}/jsr/jsr.json"
+    "${CMAKE_BINARY_DIR}/jsr/jsr.json"
     @ONLY
 )
 

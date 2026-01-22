@@ -46,8 +46,14 @@ jobs:
         run: |
           cmake --build build --config Release
 
-      - name: 'Upload artifacts'
+      - name: 'Upload artifacts (binary)'
         uses: actions/upload-artifact@v4
         with:
           name: libcpp_bindings_linux_x86_64
           path: build/libcpp_bindings_linux.so*
+
+      - name: 'Upload artifacts (JSR)'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsr_json
+          path: build/jsr/jsr.json
