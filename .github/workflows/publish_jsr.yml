@@ -59,7 +59,7 @@ jobs:
             ./jsr/bin/x86_64.json \
             linux-x86_64
       
-      - name: 'Publish package to JSR'
+      - name: 'Publish package to JSR (normal)'
         if: inputs.publish
         working-directory: jsr
         run: |
