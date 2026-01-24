@@ -8,7 +8,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME cmake_git_versioning
     GITHUB_REPOSITORY Katze719/cmake-git-versioning
-    GIT_TAG v1.0.1
+    GIT_TAG v1.1.0
 )
 
 # Include cmake-git-versioning module
@@ -23,7 +23,7 @@ project(
     LANGUAGES CXX
 )
 
-file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "export VERSION=${PROJECT_VERSION}")
+file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "export VERSION=${GIT_DESCRIBE_NO_V}")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
