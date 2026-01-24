@@ -15,15 +15,15 @@ if [ ! -f "$BINARY_FILE_PATH" ]; then
   exit 1
 fi
 
-FILENAME=$(basename "$BINARY_FILE_PATH")
+BINARY_FILE_NAME=$(basename "$BINARY_FILE_PATH")
 
-mkdir -p $(basename "$JSON_FILE_PATH")
+mkdir -p $(dirname "$JSON_FILE_PATH")
 
 BASE64_DATA=$(base64 "$BINARY_FILE_PATH" | tr -d '\n')
 
 jq -n \
   --arg target "$TARGET" \
-  --arg filename "$FILENAME" \
+  --arg filename "$BINARY_FILE_NAME" \
   --arg data "$BASE64_DATA" \
   '{
     target: $target,
