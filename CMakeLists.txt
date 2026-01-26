@@ -23,7 +23,7 @@ project(
     LANGUAGES CXX
 )
 
-file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "export PACKAGE_VERSION=${GIT_DESCRIBE_NO_V}")
+file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "PACKAGE_VERSION=${GIT_DESCRIBE_NO_V}")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
