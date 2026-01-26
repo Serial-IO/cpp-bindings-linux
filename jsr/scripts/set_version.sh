@@ -11,7 +11,7 @@ VERSION=$2
 
 temp_json_file="$(mktemp)"
 
-sed "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" \
+sed "s/\"version\": \"\"/\"version\": \"$VERSION\"/" \
   "$JSON_FILE_PATH" > "$temp_json_file"
 
 mv "$temp_json_file" "$JSON_FILE_PATH"
