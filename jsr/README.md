@@ -20,3 +20,6 @@ Deno.writeFileSync(`./${x86_64.filename}`, Uint8Array.fromBase64(x86_64.data));
 
 // Now you can open the binary using for example `Deno.dlopen`...
 ```
+
+> [!NOTE]
+> For a more in depth guide, check out the [Wiki](https://github.com/Serial-IO/cpp-bindings-linux/wiki) section on how to use the C++ bindings for Linux.
