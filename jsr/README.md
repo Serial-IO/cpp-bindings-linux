@@ -1,19 +1,22 @@
-# C++ Bindings Linux
+# C++ Bindings Linux (`@serial/cpp-bindings-linux` JSR Package)
 
-This package ships the native Linux shared library payload as a **JSON/base64
-blob**.
+[![Build Binary](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml/badge.svg)](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml)
+[![Publish to JSR](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/publish_jsr.yml/badge.svg)](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/publish_jsr.yml)
+[![JSR](https://jsr.io/badges/@serial/cpp-bindings-linux)](https://jsr.io/@serial/cpp-bindings-linux)
+
+Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 JSON file.
+
+This package is primarily intended as a dependency for [`@serial/serial`](https://jsr.io/@serial/serial). However, it can also be used independently.
+
 
 ## Usage
 
-Import the JSON and write the `.so` to disk (consumer project example):
+Import the JSON and write the binary data to disk:
 
 ```ts
-import blob from "@serial/cpp-bindings-linux/bin/x84_64" with { type: "json" };
+import {x86_64} from '@serial/cpp-bindings-linux/bin';
 
-const bytes = new TextEncoder().encode(atob(blob.data));
+Deno.writeFileSync(`./${x86_64.filename}`, Uint8Array.fromBase64(x86_64.data));
 
-const tempFilePath = Deno.makeTempFileSync();
-Deno.writeFileSync(tempFilePath, bytes, { mode: 0o755 });
-
-// Now you can open the binary using for example `Deno.dlopen`
+// Now you can open the binary using for example `Deno.dlopen`...
 ```
