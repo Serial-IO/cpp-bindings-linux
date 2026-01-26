@@ -5,7 +5,7 @@ description: |
 
 on:
   push:
-    branches: [ main ]
+    branches: [ 'main' ]
     tags: [ '*' ]
   pull_request:
     branches: [ '*' ]
@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up GCC
+      - name: 'Setup GCC'
         uses: egor-tensin/setup-gcc@v2
         with:
           version: '14'
