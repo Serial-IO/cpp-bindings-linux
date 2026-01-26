@@ -6,6 +6,9 @@ description: |
 on:
   push:
     branches: [ main ]
+    tags: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
 
   pull_request: {}
 
