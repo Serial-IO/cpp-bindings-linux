@@ -59,7 +59,7 @@ jobs:
           PACKAGE_VERSION: ${{ steps.build.outputs.PACKAGE_VERSION }}
 
         run: |
-          if [[ "$PACKAGE_VERSION" =~ ^v(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
+          if [[ "$PACKAGE_VERSION" =~ ^(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
             echo "Version \"$PACKAGE_VERSION\" is a valid package version."
             echo "IS_VALID_VERSION_TAG=true" >> $GITHUB_OUTPUT
           else
