@@ -12,13 +12,22 @@ on:
 
 jobs:
   build-binary:
-    name: 'Build Binary'
+    name: 'Build binary'
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout repository'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      
+      - name: 'Check tag'
+        id: 'check-tag'
+        run: |
+          if [[ ${{ github.event.ref }} =~ ^refs/tags/v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:alpha|rc|beta|experimental)\.[1-9]\d*)?$ ]]; then
+            echo "IS_VALID_VERSION_TAG=true" >> $GITHUB_OUTPUT
+          else
+            echo "IS_VALID_VERSION_TAG=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: 'Setup GCC'
         uses: egor-tensin/setup-gcc@v2
@@ -53,6 +62,7 @@ jobs:
           path: build/libcpp_bindings_linux.so*
     
     outputs:
+      is_valid_version_tag: ${{ steps.build.outputs.IS_VALID_VERSION_TAG }}
       package_version: ${{ steps.build.outputs.PACKAGE_VERSION }}
 
   trigger-publish:
@@ -60,7 +70,7 @@ jobs:
     needs: ['build-binary']
     uses: ./.github/workflows/publish_jsr.yml
     with:
-      publish: ${{ github.ref == 'refs/heads/main' && github.ref_type == 'tag' }}
+      publish: ${{ needs.build-binary.outputs.is_valid_version_tag }}
       version: ${{ needs.build-binary.outputs.package_version }}
       artifact-name: libcpp_bindings_linux_x86_64
     
