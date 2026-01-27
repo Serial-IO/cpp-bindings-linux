@@ -61,10 +61,10 @@ jobs:
         run: |
           if [[ "$PACKAGE_VERSION" =~ ^(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
             echo "Version \"$PACKAGE_VERSION\" is a valid package version."
-            echo "IS_VALID_VERSION_TAG=true" >> $GITHUB_OUTPUT
+            echo "IS_VALID_PACKAGE_VERSION=true" >> $GITHUB_OUTPUT
           else
             echo "Version \"$PACKAGE_VERSION\" is not a valid package version."
-            echo "IS_VALID_VERSION_TAG=false" >> $GITHUB_OUTPUT
+            echo "IS_VALID_PACKAGE_VERSION=false" >> $GITHUB_OUTPUT
           fi
     
     outputs:
