@@ -74,7 +74,7 @@ jobs:
     needs: ['build-binary']
     uses: ./.github/workflows/publish_jsr.yml
     with:
-      publish: ${{ needs.build-binary.outputs.is_valid_version_tag }}
+      publish: ${{ needs.build-binary.outputs.is_valid_version_tag == 'true' }}
       version: ${{ needs.build-binary.outputs.package_version }}
       artifact-name: libcpp_bindings_linux_x86_64
     
