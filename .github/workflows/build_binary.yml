@@ -20,19 +20,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: 'Check tag'
-        id: 'check-tag'
-        run: |
-          TAG="$GITHUB_REF_NAME"
-
-          if [[ "$TAG" =~ ^v(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
-            echo "Tag is a valid version tag."
-            echo "IS_VALID_VERSION_TAG=true" >> $GITHUB_OUTPUT
-          else
-            echo "Tag is not a valid version tag."
-            echo "IS_VALID_VERSION_TAG=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: 'Setup GCC'
         uses: egor-tensin/setup-gcc@v2
@@ -65,10 +52,23 @@ jobs:
         with:
           name: libcpp_bindings_linux_x86_64
           path: build/libcpp_bindings_linux.so*
+
+      - name: 'Check tag'
+        id: 'check-tag'
+        run: |
+          TAG="${{ steps.build.outputs.PACKAGE_VERSION }}"
+
+          if [[ "$TAG" =~ ^v(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
+            echo "Tag is a valid version tag."
+            echo "IS_VALID_VERSION_TAG=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag is not a valid version tag."
+            echo "IS_VALID_VERSION_TAG=false" >> $GITHUB_OUTPUT
+          fi
     
     outputs:
-      is_valid_version_tag: ${{ steps.check-tag.outputs.IS_VALID_VERSION_TAG }}
       package_version: ${{ steps.build.outputs.PACKAGE_VERSION }}
+      is_valid_version_tag: ${{ steps.check-tag.outputs.IS_VALID_VERSION_TAG }}
 
   trigger-publish:
     name: 'Trigger Publish'
