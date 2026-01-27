@@ -26,8 +26,10 @@ jobs:
           REF="${GITHUB_REF}"
 
           if [[ "$REF" =~ ^refs/tags/v(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
+            echo "Tag is a valid version tag."
             echo "IS_VALID_VERSION_TAG=true" >> $GITHUB_OUTPUT
           else
+            echo "Tag is not a valid version tag."
             echo "IS_VALID_VERSION_TAG=false" >> $GITHUB_OUTPUT
           fi
 
