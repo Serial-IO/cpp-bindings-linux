@@ -14,6 +14,6 @@ if [ ! -f "$BINARY_FILE_PATH" ]; then
   exit 1
 fi
 
-mkdir -p $(dirname "$DESTINATION_FILE_PATH")
+mkdir -p "$(dirname "$DESTINATION_FILE_PATH")"
 
 cp "$BINARY_FILE_PATH" "$DESTINATION_FILE_PATH"

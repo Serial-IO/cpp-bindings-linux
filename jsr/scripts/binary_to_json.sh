@@ -17,7 +17,7 @@ fi
 
 BINARY_FILE_NAME=$(basename "$BINARY_FILE_PATH")
 
-mkdir -p $(dirname "$JSON_FILE_PATH")
+mkdir -p "$(dirname "$JSON_FILE_PATH")"
 
 BASE64_DATA=$(base64 "$BINARY_FILE_PATH" | tr -d '\n')
 
