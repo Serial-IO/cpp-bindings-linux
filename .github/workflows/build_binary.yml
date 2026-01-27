@@ -66,7 +66,7 @@ jobs:
           path: build/libcpp_bindings_linux.so*
     
     outputs:
-      is_valid_version_tag: ${{ steps.build.outputs.IS_VALID_VERSION_TAG }}
+      is_valid_version_tag: ${{ steps.check-tag.outputs.IS_VALID_VERSION_TAG }}
       package_version: ${{ steps.build.outputs.PACKAGE_VERSION }}
 
   trigger-publish:
