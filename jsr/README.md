@@ -4,7 +4,7 @@
 [![Publish JSR](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/publish_jsr.yml/badge.svg)](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/publish_jsr.yml)
 [![JSR](https://jsr.io/badges/@serial/cpp-bindings-linux)](https://jsr.io/@serial/cpp-bindings-linux)
 
-Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 JSON file.
+Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 string inside the JSON file.
 
 This package is primarily intended as a dependency for [`@serial/serial`](https://jsr.io/@serial/serial). However, it can also be used independently.
 
