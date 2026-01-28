@@ -1,6 +1,7 @@
 #include <cpp_core/interface/serial_open.h>
 #include <cpp_core/status_codes.h>
 
+#include "detail/abort_registry.hpp"
 #include "detail/posix_helpers.hpp"
 
 #include <fcntl.h>
@@ -153,6 +154,12 @@ extern "C"
         // and leaving the FD non-blocking prevents any unexpected blocking syscalls.
 
         tcflush(handle.get(), TCIOFLUSH);
+
+        if (!cpp_bindings_linux::detail::registerAbortPipesForFd(handle.get()))
+        {
+            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                                                 "Failed to initialize abort pipes");
+        }
 
         // Note: Some devices (e.g., Arduino) reset when the serial port is opened.
         // It is recommended to wait 1-2 seconds after opening before sending data
