@@ -10,10 +10,6 @@
 
 #include "test_helpers/error_capture.hpp"
 
-// ============================================================================
-// Tests for serialRead
-// ============================================================================
-
 class SerialReadTest : public ::testing::Test
 {
   protected:

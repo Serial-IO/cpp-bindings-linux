@@ -12,10 +12,6 @@
 
 #include "test_helpers/error_capture.hpp"
 
-// ============================================================================
-// Tests for serialWrite
-// ============================================================================
-
 class SerialWriteTest : public ::testing::Test
 {
   protected:

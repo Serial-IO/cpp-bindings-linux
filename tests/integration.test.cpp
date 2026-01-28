@@ -14,10 +14,6 @@
 
 #include "test_helpers/error_capture.hpp"
 
-// ============================================================================
-// Integration Tests
-// ============================================================================
-
 class SerialIntegrationTest : public ::testing::Test
 {
   protected:

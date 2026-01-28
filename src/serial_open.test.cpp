@@ -2,17 +2,12 @@
 #include <cpp_core/status_codes.h>
 
 #include <array>
-#include <limits>
 #include <string>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "test_helpers/error_capture.hpp"
-
-// ============================================================================
-// Tests for serialOpen
-// ============================================================================
 
 class SerialOpenTest : public ::testing::Test
 {

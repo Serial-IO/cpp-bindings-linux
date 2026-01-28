@@ -7,10 +7,6 @@
 
 #include "test_helpers/error_capture.hpp"
 
-// ============================================================================
-// Tests for serialClose
-// ============================================================================
-
 class SerialCloseTest : public ::testing::Test
 {
   protected:
