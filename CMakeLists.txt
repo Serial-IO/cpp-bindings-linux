@@ -8,7 +8,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME cmake_git_versioning
     GITHUB_REPOSITORY Katze719/cmake-git-versioning
-    GIT_TAG v1.0.1
+    GIT_TAG v1.1.0
 )
 
 # Include cmake-git-versioning module
@@ -23,13 +23,7 @@ project(
     LANGUAGES CXX
 )
 
-# Generate JSR package metadata from the same git-derived version as the library.
-# We generate into the build directory to avoid touching tracked files during normal local builds.
-configure_file(
-    "${CMAKE_SOURCE_DIR}/jsr/package/jsr.json.in"
-    "${CMAKE_SOURCE_DIR}/jsr/package/jsr.json"
-    @ONLY
-)
+file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "PACKAGE_VERSION=${GIT_DESCRIBE_NO_V}")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
