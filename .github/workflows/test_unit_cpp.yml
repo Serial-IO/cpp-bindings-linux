@@ -46,6 +46,7 @@ jobs:
           SERIAL_TEST_PORT: $SERIAL_TEST_PORT_IN
 
         run: |
+          pwd
           ls -Ral .
           chmod +x ./cpp_bindings_linux_tests
 
