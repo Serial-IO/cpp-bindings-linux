@@ -61,10 +61,9 @@ jobs:
       
       - name: 'Publish test report'
         if: always()
-        uses: dorny/test-reporter@v1
+        uses: mikepenz/action-junit-report@v5
         with:
-          name: 'C++ Unit Tests'
-          path: 'artifacts/${{ env.TEST_REPORT_NAME }}'
-          reporter: java-junit
+          report_paths: 'artifacts/${{ env.TEST_REPORT_NAME }}'
+          detailed_summary: true
 
 
