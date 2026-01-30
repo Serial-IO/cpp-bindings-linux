@@ -68,7 +68,7 @@ jobs:
           group_suite: true
           include_passed: true
           annotate_notice: true
-          transformers: '[{"searchValue":"/home/runner/work/cpp-bindings-linux","replaceValue":""}]'
+          transformers: '[{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]'
 
 
 
