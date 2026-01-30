@@ -1,4 +1,6 @@
-name: C++ Tests
+name: 'Test Unit C++'
+description: |
+  This workflow runs the unit tests.
 
 on:
   workflow_call:
@@ -7,52 +9,83 @@ on:
         required: true
         type: string
 
-  push:
-    branches: [ main, master ]
-  pull_request:
-
 jobs:
-  cpp-tests:
-    name: C++ tests (gcc)
+  test-unit-cpp:
+    name: 'Test Unit C++'
     runs-on: ubuntu-latest
-
-    container:
-      image: fedora:43
-
     env:
-      SERIAL_TEST_PORT: /tmp/ttyCI_A
+      SERIAL_TEST_PORT_A: /tmp/ttyCI_A
+      SERIAL_TEST_PORT_B: /tmp/ttyCI_B
+      TEST_REPORT_NAME: 'test_report.xml'
 
     steps:
-      - name: Checkout repository
+      - name: 'Checkout repository'
         uses: actions/checkout@v4
 
-      - name: Install build dependencies (gcc)
-        run: |
-          dnf -y update
-          dnf -y install cmake ninja-build gcc-c++ socat git
+      - name: 'Setup GCC'
+        uses: egor-tensin/setup-gcc@v2
+        with:
+          version: '14'
+          platform: 'x64'
 
-      - name: Configure CMake
+      - name: 'Setup CMake'
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.31.x'
+      
+      - name: 'Download artifact'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: 'artifacts'
+
+      - name: 'Install test dependencies'
+        run: |
+          apt-get install -y socat
+
+      - name: 'Configure CMake'
         env:
           CXX: g++
-        run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_PREBUILT_LIB=ON \
+            -DPREBUILT_LIB_DIR=$GITHUB_WORKSPACE/artifacts
+
+      - name: 'Build tests'
         run: |
           cmake --build build --config Release
 
       - name: Start virtual serial echo (socat)
         run: |
-          socat -d -d pty,raw,echo=0,link=/tmp/ttyCI_A,mode=666 pty,raw,echo=0,link=/tmp/ttyCI_B,mode=666 &
+          socat -d -d pty,raw,echo=0,link=$SERIAL_TEST_PORT_A,mode=666 pty,raw,echo=0,link=$SERIAL_TEST_PORT_B,mode=666 &
           sleep 2
-          stdbuf -i0 -o0 cat < /tmp/ttyCI_B > /tmp/ttyCI_B &
+          stdbuf -i0 -o0 cat < $SERIAL_TEST_PORT_B > $SERIAL_TEST_PORT_B &
           sleep 1
 
-      - name: Run C++ unit/integration tests
-        working-directory: build
+      - name: 'Run tests'
+        working-directory: 'build'
         env:
-          SERIAL_TEST_PORT: /tmp/ttyCI_A
+          LD_LIBRARY_PATH: $GITHUB_WORKSPACE/artifacts
+
         run: |
-          ./cpp_bindings_linux_tests --gtest_color=yes
+          ./cpp_bindings_linux_tests
+            --gtest_color=yes
+            --gtest_output=xml:$TEST_REPORT_NAME
+      
+      - name: 'Upload test results'
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'test_results'
+          path: 'build/${{ env.TEST_REPORT_NAME }}'
+      
+      - name: 'Publish test report'
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: 'C++ Unit Tests'
+          path: 'build/${{ env.TEST_REPORT_NAME }}'
+          reporter: java-junit
 
 
