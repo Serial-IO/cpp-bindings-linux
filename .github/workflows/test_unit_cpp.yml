@@ -42,6 +42,7 @@ jobs:
       - name: 'Run tests'
         working-directory: 'artifacts'
         env:
+          LD_LIBRARY_PATH: './libcpp_bindings_linux.so'
           SERIAL_TEST_PORT: $SERIAL_TEST_PORT_IN
 
         run: |
