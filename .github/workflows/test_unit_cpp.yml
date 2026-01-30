@@ -71,7 +71,7 @@ jobs:
           annotate_notice: true
           test_files_prefix: '<root>/'
           transformers: |
-            [{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]
+            [{"searchValue": "/home/runner/work/cpp-bindings-linux", "replaceValue": ""}]
 
 
 
