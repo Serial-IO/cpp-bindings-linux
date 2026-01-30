@@ -57,14 +57,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: 'test_results'
-          path: 'build/${{ env.TEST_REPORT_NAME }}'
+          path: 'artifacts/${{ env.TEST_REPORT_NAME }}'
       
       - name: 'Publish test report'
         if: always()
         uses: dorny/test-reporter@v1
         with:
           name: 'C++ Unit Tests'
-          path: 'build/${{ env.TEST_REPORT_NAME }}'
+          path: 'artifacts/${{ env.TEST_REPORT_NAME }}'
           reporter: java-junit
 
 
