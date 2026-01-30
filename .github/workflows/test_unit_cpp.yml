@@ -1,6 +1,12 @@
 name: C++ Tests
 
 on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+
   push:
     branches: [ main, master ]
   pull_request:
