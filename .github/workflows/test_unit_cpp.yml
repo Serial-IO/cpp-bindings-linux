@@ -69,6 +69,7 @@ jobs:
           include_passed: true
           annotate_notice: true
           transformers: '[{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]'
+          check_title_template: '{{FILE_NAME}} {{TEST_NAME}}'
 
 
 
