@@ -48,7 +48,7 @@ jobs:
           CXX: g++
 
         run: |
-          cmake -S . -B build -G Ninja
+          cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DUSE_PREBUILT_LIB=ON \
             -DPREBUILT_LIB_DIR=$GITHUB_WORKSPACE/artifacts
