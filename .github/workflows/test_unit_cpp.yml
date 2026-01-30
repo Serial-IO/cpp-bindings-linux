@@ -14,8 +14,8 @@ jobs:
     name: 'Test Unit C++'
     runs-on: ubuntu-latest
     env:
-      SERIAL_TEST_PORT_A: /tmp/ttyCI_A
-      SERIAL_TEST_PORT_B: /tmp/ttyCI_B
+      SERIAL_TEST_PORT_IN: /tmp/ttyCI_IN
+      SERIAL_TEST_PORT_OUT: /tmp/ttyCI_OUT
       TEST_REPORT_NAME: 'test_report.xml'
 
     steps:
@@ -59,14 +59,15 @@ jobs:
 
       - name: Start virtual serial echo (socat)
         run: |
-          socat -d -d pty,raw,echo=0,link=$SERIAL_TEST_PORT_A,mode=666 pty,raw,echo=0,link=$SERIAL_TEST_PORT_B,mode=666 &
+          socat -d -d pty,raw,echo=0,link=$SERIAL_TEST_PORT_IN,mode=666 pty,raw,echo=0,link=$SERIAL_TEST_PORT_OUT,mode=666 &
           sleep 2
-          stdbuf -i0 -o0 cat < $SERIAL_TEST_PORT_B > $SERIAL_TEST_PORT_B &
+          stdbuf -i0 -o0 cat < $SERIAL_TEST_PORT_OUT > $SERIAL_TEST_PORT_OUT &
           sleep 1
 
       - name: 'Run tests'
         working-directory: 'build'
         env:
+          SERIAL_TEST_PORT: $SERIAL_TEST_PORT_IN
           LD_LIBRARY_PATH: $GITHUB_WORKSPACE/artifacts
 
         run: |
