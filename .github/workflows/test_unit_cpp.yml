@@ -48,8 +48,8 @@ jobs:
         run: |
           chmod +x ./cpp_bindings_linux_tests
 
-          ./cpp_bindings_linux_tests
-            --gtest_color=yes
+          ./cpp_bindings_linux_tests \
+            --gtest_color=yes \
             --gtest_output=xml:$TEST_REPORT_NAME
       
       - name: 'Upload test report'
