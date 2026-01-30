@@ -72,7 +72,7 @@ jobs:
       is_valid_package_version: ${{ steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION }}
 
   test-unit-cpp:
-    name: 'Test Unit C++'
+    name: 'Run: Test Unit C++'
     needs: ['build-binary']
     uses: './.github/workflows/test_unit_cpp.yml'
     with:
@@ -82,7 +82,7 @@ jobs:
       contents: read
   
   publish-jsr:
-    name: 'Publish JSR'
+    name: 'Run: Publish JSR'
     needs: ['build-binary', 'test-unit-cpp']
     uses: './.github/workflows/publish_jsr.yml'
     with:
