@@ -47,15 +47,17 @@ jobs:
           . build/env.sh
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
-      - name: 'Upload artifacts'
+      - name: 'Upload artifacts (lib)'
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: error
           name: libcpp_bindings_linux
           path: build/libcpp_bindings_linux.so*
 
-      - name: 'Upload artifacts'
+      - name: 'Upload artifacts (tests)'
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: error
           name: cpp_bindings_linux_tests
           path: build/cpp_bindings_linux_tests
 
