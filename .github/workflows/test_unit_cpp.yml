@@ -56,7 +56,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 'test_results'
+          name: 'test_reports'
           path: 'artifacts/${{ env.TEST_REPORT_NAME }}'
       
       - name: 'Publish test report'
@@ -68,7 +68,7 @@ jobs:
           group_suite: true
           include_passed: true
           annotate_notice: true
-          transformers: '[{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]'
+          transformers: '[{"searchValue":"/home/runner/work/cpp-bindings-linux","replaceValue":""}]'
 
 
 
