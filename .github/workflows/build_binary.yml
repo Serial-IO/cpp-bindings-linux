@@ -52,14 +52,16 @@ jobs:
         with:
           if-no-files-found: error
           name: libcpp_bindings_linux
-          path: build/libcpp_bindings_linux.so*
+          path: build/libcpp_bindings_linux.so
 
       - name: 'Upload artifacts (tests)'
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: cpp_bindings_linux_tests
-          path: build/cpp_bindings_linux_tests
+          path: |
+            build/libcpp_bindings_linux.so*
+            build/cpp_bindings_linux_tests
 
       - name: 'Check tag'
         id: 'check-tag'
