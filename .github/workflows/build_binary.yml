@@ -42,7 +42,7 @@ jobs:
       - name: 'Build'
         id: 'build'
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release --target all
 
           . build/env.sh
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
@@ -51,7 +51,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: libcpp_bindings_linux_x86_64
-          path: build/libcpp_bindings_linux.so*
+          path: |
+            build/libcpp_bindings_linux.so*
+            build/cpp_bindings_linux_tests
 
       - name: 'Check tag'
         id: 'check-tag'
