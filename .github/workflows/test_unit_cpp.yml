@@ -45,11 +45,13 @@ jobs:
           SERIAL_TEST_PORT: $SERIAL_TEST_PORT_IN
 
         run: |
+          chmod +x ./cpp_bindings_linux_tests
+
           ./cpp_bindings_linux_tests
             --gtest_color=yes
             --gtest_output=xml:$TEST_REPORT_NAME
       
-      - name: 'Upload test results'
+      - name: 'Upload test report'
         if: always()
         uses: actions/upload-artifact@v4
         with:
