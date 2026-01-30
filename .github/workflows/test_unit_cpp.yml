@@ -69,6 +69,7 @@ jobs:
           group_suite: true
           include_passed: true
           annotate_notice: true
+          test_files_prefix: '<root>/'
           transformers: |
             [{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]
 
