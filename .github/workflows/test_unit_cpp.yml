@@ -42,7 +42,7 @@ jobs:
       - name: 'Run tests'
         working-directory: 'artifacts'
         env:
-          LD_LIBRARY_PATH: '$GITHUB_WORKSPACE/artifacts'
+          LD_LIBRARY_PATH: '${{ github.workspace }}/artifacts'
           SERIAL_TEST_PORT: $SERIAL_TEST_PORT_IN
 
         run: |
