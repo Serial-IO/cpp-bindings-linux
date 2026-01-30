@@ -23,6 +23,9 @@ project(
     LANGUAGES CXX
 )
 
+option(USE_PREBUILT_LIB "Use prebuilt cpp_bindings_linux library" OFF)
+set(PREBUILT_LIB_DIR "" CACHE PATH "Directory containing prebuilt libcpp_bindings_linux.so")
+
 file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "PACKAGE_VERSION=${GIT_DESCRIBE_NO_V}")
 
 # Set C++ standard
@@ -62,31 +65,47 @@ file(GLOB_RECURSE LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER LIB_SOURCES EXCLUDE REGEX ".*\\.test\\.cpp$")
 list(FILTER LIB_SOURCES EXCLUDE REGEX ".*/test_helpers/.*")
 
-add_library(cpp_bindings_linux SHARED ${LIB_SOURCES})
+if(USE_PREBUILT_LIB)
+    message(STATUS "Using prebuilt cpp_bindings_linux from ${PREBUILT_LIB_DIR}")
 
-set_target_properties(
-    cpp_bindings_linux
-    PROPERTIES
-    VERSION "${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH}"
-    SOVERSION "${GIT_VERSION_MAJOR}"
-    OUTPUT_NAME cpp_bindings_linux
-)
+    add_library(cpp_bindings_linux SHARED IMPORTED)
 
-target_include_directories(
-    cpp_bindings_linux
-    PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
+    set_target_properties(
+        cpp_bindings_linux
+        PROPERTIES
+            IMPORTED_LOCATION "${PREBUILT_LIB_DIR}/libcpp_bindings_linux.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include;${CMAKE_BINARY_DIR}/generated"
+    )
 
-target_link_libraries(
-    cpp_bindings_linux
-    PUBLIC
-    cpp_core::cpp_core
-)
+else()
+    message(STATUS "Building cpp_bindings_linux from source")
+    
+    add_library(cpp_bindings_linux SHARED ${LIB_SOURCES})
 
-target_compile_features(cpp_bindings_linux PUBLIC cxx_std_23)
+    set_target_properties(
+        cpp_bindings_linux
+        PROPERTIES
+            VERSION "${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH}"
+            SOVERSION "${GIT_VERSION_MAJOR}"
+        OUTPUT_NAME cpp_bindings_linux
+    )
+    
+    target_include_directories(
+        cpp_bindings_linux
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+        
+    target_link_libraries(
+        cpp_bindings_linux
+        PUBLIC
+        cpp_core::cpp_core
+    )
+        
+    target_compile_features(cpp_bindings_linux PUBLIC cxx_std_23)
+endif()
 
 # Test sources: src/*.test.cpp, tests/*.test.cpp, src/test_helpers/*.cpp (helpers excluded from lib)
 file(GLOB SRC_UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
