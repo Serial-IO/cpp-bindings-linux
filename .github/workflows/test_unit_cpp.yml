@@ -40,10 +40,9 @@ jobs:
           sleep 1
 
       - name: 'Run tests'
-        working-directory: 'build'
+        working-directory: 'artifacts'
         env:
           SERIAL_TEST_PORT: $SERIAL_TEST_PORT_IN
-          LD_LIBRARY_PATH: $GITHUB_WORKSPACE/artifacts
 
         run: |
           ./cpp_bindings_linux_tests
