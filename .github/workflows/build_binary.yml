@@ -84,7 +84,7 @@ jobs:
     needs: ['build-binary']
     uses: './.github/workflows/test_unit_cpp.yml'
     with:
-      artifact-name: cpp_bindings_linux_test
+      artifact-name: cpp_bindings_linux_tests
     
     permissions:
       contents: read
