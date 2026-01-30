@@ -65,7 +65,6 @@ jobs:
         with:
           report_paths: 'artifacts/${{ env.TEST_REPORT_NAME }}'
           detailed_summary: true
-          include_passed: true
           annotate_notice: true
           group_suite: true
 
