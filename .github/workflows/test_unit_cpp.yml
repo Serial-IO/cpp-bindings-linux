@@ -69,6 +69,8 @@ jobs:
           group_suite: true
           include_passed: true
           annotate_notice: true
+          transformers: |
+            [{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]
 
 
 
