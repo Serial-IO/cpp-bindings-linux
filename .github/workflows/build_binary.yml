@@ -77,6 +77,9 @@ jobs:
     uses: './.github/workflows/test_unit_cpp.yml'
     with:
       artifact-name: libcpp_bindings_linux_x86_64
+    
+    permissions:
+      contents: read
   
   publish-jsr:
     name: 'Publish JSR'
