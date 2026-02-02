@@ -1,4 +1,4 @@
-# C++ Bindings Linux (`@serial/cpp-bindings-linux` JSR Package)
+# C++ Bindings Linux
 
 [![Build Binary](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml/badge.svg)](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml)
 [![JSR](https://jsr.io/badges/@serial/cpp-bindings-linux)](https://jsr.io/@serial/cpp-bindings-linux)
