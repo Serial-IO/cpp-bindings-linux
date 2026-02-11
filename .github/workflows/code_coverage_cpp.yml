@@ -1,0 +1,35 @@
+name: 'Code Coverage C++'
+description: |
+  This workflow checks and displays code coverage.
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+
+jobs:
+  code-coverage-cpp:
+    name: 'Code Coverage C++'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
+      
+      - name: 'Download artifact'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: 'artifacts'
+
+      - name: 'Code Coverage Annotation'
+        uses: ggilder/codecoverage@v1
+        with:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          COVERAGE_FILE_PATH: "./artifacts/lcov.info"
+          COVERAGE_FORMAT: "lcov"
+
+
+
