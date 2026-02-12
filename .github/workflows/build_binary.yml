@@ -37,12 +37,12 @@ jobs:
           CXX: g++
 
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --preset linux-gcc-release
 
       - name: 'Build'
         id: 'build'
         run: |
-          cmake --build build --config Release --target all
+          cmake --build --preset default
 
           . build/env.sh
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
