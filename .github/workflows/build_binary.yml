@@ -91,16 +91,6 @@ jobs:
     permissions:
       contents: read
       checks: write
-
-  code-coverage-cpp:
-    name: 'Run: CodeCoverage C++'
-    uses: './.github/workflows/code_coverage_cpp.yml'
-    with:
-      artifact-name: cpp_bindings_linux_tests
-    
-    permissions:
-      contents: read
-      checks: write
   
   publish-jsr:
     name: 'Run: Publish JSR'

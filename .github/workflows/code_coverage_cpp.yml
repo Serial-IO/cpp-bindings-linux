@@ -3,11 +3,12 @@ description: |
   This workflow checks and displays code coverage.
 
 on:
-  workflow_call:
-    inputs:
-      artifact-name:
-        required: true
-        type: string
+  push:
+    branches: [ 'main' ]
+    tags: [ '*' ]
+
+  pull_request:
+    branches: [ '*' ]
 
 jobs:
   code-coverage-cpp:
@@ -16,6 +17,11 @@ jobs:
     env:
       SERIAL_TEST_PORT_IN: /tmp/ttyCI_IN
       SERIAL_TEST_PORT_OUT: /tmp/ttyCI_OUT
+      TEST_REPORT_NAME: 'lcov.info'
+
+    permissions:
+      contents: read
+      checks: write
 
     steps:
       - name: 'Checkout repository'
@@ -73,11 +79,11 @@ jobs:
             -ignore-filename-regex='.*/GTest.*' \
             -ignore-filename-regex='.*/googletest.*' \
             -ignore-filename-regex='.*/cpp_core.*' \
-            > lcov.info
+            > $TEST_REPORT_NAME
 
       - name: 'Code Coverage Annotation'
         uses: ggilder/codecoverage@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERAGE_FILE_PATH: './build/lcov.info'
+          COVERAGE_FILE_PATH: './build/${{ github.env.TEST_REPORT_NAME }}'
           COVERAGE_FORMAT: 'lcov'
