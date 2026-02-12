@@ -35,7 +35,7 @@
   ],
   "buildPresets": [
     {
-      "name": "default",
+      "name": "linux-gcc-release",
       "configurePreset": "linux-gcc-release"
     },
     {

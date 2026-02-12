@@ -42,7 +42,7 @@ jobs:
       - name: 'Build'
         id: 'build'
         run: |
-          cmake --build --preset default --target cpp_bindings_linux
+          cmake --build --preset linux-gcc-release --target cpp_bindings_linux
 
           . build/env.sh
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT

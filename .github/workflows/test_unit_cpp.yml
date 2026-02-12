@@ -41,16 +41,13 @@ jobs:
           cmake-version: '3.31.x'
 
       - name: 'Configure CMake'
-        env:
-          CXX: g++
-
         run: |
           cmake --preset linux-gcc-release
       
       - name: 'Build'
         id: 'build'
         run: |
-          cmake --build --preset default --target cpp_bindings_linux_tests
+          cmake --build --preset linux-gcc-release --target cpp_bindings_linux_tests
 
       - name: 'Install test dependencies'
         run: |
