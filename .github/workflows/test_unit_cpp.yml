@@ -4,6 +4,9 @@ description: |
 
 on:
   workflow_run:
+    branches:
+      - '*'
+
     workflows:
       - 'Build Binary'
     
