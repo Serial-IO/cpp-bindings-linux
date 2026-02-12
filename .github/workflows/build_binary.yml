@@ -94,7 +94,6 @@ jobs:
 
   code-coverage-cpp:
     name: 'Run: CodeCoverage C++'
-    needs: ['build-binary']
     uses: './.github/workflows/code_coverage_cpp.yml'
     with:
       artifact-name: cpp_bindings_linux_tests
