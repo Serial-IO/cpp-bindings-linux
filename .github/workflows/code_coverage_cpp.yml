@@ -17,7 +17,6 @@ jobs:
     env:
       SERIAL_TEST_PORT_IN: /tmp/ttyCI_IN
       SERIAL_TEST_PORT_OUT: /tmp/ttyCI_OUT
-      TEST_REPORT_NAME: 'lcov.info'
 
     permissions:
       contents: read
@@ -79,11 +78,11 @@ jobs:
             -ignore-filename-regex='.*/GTest.*' \
             -ignore-filename-regex='.*/googletest.*' \
             -ignore-filename-regex='.*/cpp_core.*' \
-            > $TEST_REPORT_NAME
+            > lcov.info
 
       - name: 'Code Coverage Annotation'
         uses: ggilder/codecoverage@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERAGE_FILE_PATH: './build/${{ github.env.TEST_REPORT_NAME }}'
+          COVERAGE_FILE_PATH: './build/lcov.info'
           COVERAGE_FORMAT: 'lcov'
