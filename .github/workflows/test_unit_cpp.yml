@@ -45,13 +45,12 @@ jobs:
           CXX: g++
 
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --preset linux-gcc-release
       
       - name: 'Build'
         id: 'build'
         run: |
-          cmake --build build --config Release --target all
-          #################################### ^ needs to be changed
+          cmake --build --preset default --target cpp_bindings_linux_tests
 
       - name: 'Install test dependencies'
         run: |
