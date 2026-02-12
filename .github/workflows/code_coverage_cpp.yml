@@ -23,11 +23,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 'Setup Clang'
-        uses: egor-tensin/setup-clang@v2
-        with:
-          version: '21'
-          platform: 'x64'
+      - name: 'Install Clang and compiler-rt (profile)'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-apt.gpg
+          echo "deb [signed-by=/usr/share/keyrings/llvm-apt.gpg] https://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main" | sudo tee /etc/apt/sources.list.d/llvm-21.list
+          sudo apt-get update
+          sudo apt-get install -y clang-21 libclang-rt-21-dev llvm-21
 
       - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
@@ -35,7 +36,10 @@ jobs:
           cmake-version: '3.31.x'
 
       - name: 'Configure CMake (coverage preset)'
-        run: cmake --preset coverage
+        run: |
+          cmake --preset coverage \
+            -DCMAKE_C_COMPILER=clang-21 \
+            -DCMAKE_CXX_COMPILER=clang++-21
 
       - name: 'Build'
         run: cmake --build --preset coverage
@@ -61,8 +65,8 @@ jobs:
       - name: 'Merge profile and export lcov'
         working-directory: build
         run: |
-          llvm-profdata merge -o default.profdata default.profraw
-          llvm-cov export -instr-profile=default.profdata \
+          llvm-profdata-21 merge -o default.profdata default.profraw
+          llvm-cov-21 export -instr-profile=default.profdata \
             ./cpp_bindings_linux_tests \
             -object=./libcpp_bindings_linux.so \
             -format=lcov \
