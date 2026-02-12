@@ -71,10 +71,21 @@ jobs:
     outputs:
       package_version: ${{ steps.build.outputs.PACKAGE_VERSION }}
       is_valid_package_version: ${{ steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION }}
+
+  test-unit-cpp:
+    name: 'Run: Test Unit C++'
+    needs: ['build-binary']
+    uses: './.github/workflows/test_unit_cpp.yml'
+    with:
+      artifact-name: cpp_bindings_linux_tests
+    
+    permissions:
+      contents: read
+      checks: write
   
   publish-jsr:
     name: 'Run: Publish JSR'
-    needs: ['build-binary']
+    needs: ['build-binary', 'test-unit-cpp']
     uses: './.github/workflows/publish_jsr.yml'
     with:
       publish: ${{ needs.build-binary.outputs.is_valid_package_version == 'true' }}
