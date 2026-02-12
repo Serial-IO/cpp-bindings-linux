@@ -1,18 +1,17 @@
 name: 'Test Unit C++'
 description: |
-  This workflow runs the unit tests.
+  This workflow builds the library and runs the unit tests.
 
 on:
-  workflow_call:
-    inputs:
-      artifact-name:
-        required: true
-        type: string
+  workflow_run:
+    workflows:
+      - 'Build Binary'
 
 jobs:
   test-unit-cpp:
     name: 'Test Unit C++'
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       SERIAL_TEST_PORT_IN: /tmp/ttyCI_IN
       SERIAL_TEST_PORT_OUT: /tmp/ttyCI_OUT
@@ -25,8 +24,33 @@ jobs:
       - name: 'Download artifact'
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.artifact-name }}
+          run-id: ${{ github.event.workflow_run.id }}
+          name: libcpp_bindings_linux
           path: 'artifacts'
+      
+      - name: 'Setup GCC'
+        uses: egor-tensin/setup-gcc@v2
+        with:
+          version: '14'
+          platform: 'x64'
+
+      - name: 'Setup CMake'
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.31.x'
+
+      - name: 'Configure CMake'
+        env:
+          CXX: g++
+
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      
+      - name: 'Build'
+        id: 'build'
+        run: |
+          cmake --build build --config Release --target all
+          #################################### ^ needs to be changed
 
       - name: 'Install test dependencies'
         run: |
@@ -40,7 +64,7 @@ jobs:
           sleep 1
 
       - name: 'Run tests'
-        working-directory: 'artifacts'
+        working-directory: 'build'
         env:
           LD_LIBRARY_PATH: '${{ github.workspace }}/artifacts'
           SERIAL_TEST_PORT: '${{ env.SERIAL_TEST_PORT_IN }}'
@@ -57,13 +81,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: 'test_reports'
-          path: 'artifacts/${{ env.TEST_REPORT_NAME }}'
+          path: 'build/${{ env.TEST_REPORT_NAME }}'
       
       - name: 'Publish test report'
         if: always()
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: 'artifacts/${{ env.TEST_REPORT_NAME }}'
+          report_paths: 'build/${{ env.TEST_REPORT_NAME }}'
           detailed_summary: true
           group_suite: true
           include_passed: true

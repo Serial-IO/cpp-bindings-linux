@@ -47,21 +47,12 @@ jobs:
           . build/env.sh
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
-      - name: 'Upload artifacts (lib)'
+      - name: 'Upload artifacts'
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: libcpp_bindings_linux
           path: build/libcpp_bindings_linux.so
-
-      - name: 'Upload artifacts (tests)'
-        uses: actions/upload-artifact@v4
-        with:
-          if-no-files-found: error
-          name: cpp_bindings_linux_tests
-          path: |
-            build/libcpp_bindings_linux.so*
-            build/cpp_bindings_linux_tests
 
       - name: 'Check tag'
         id: 'check-tag'
@@ -80,21 +71,10 @@ jobs:
     outputs:
       package_version: ${{ steps.build.outputs.PACKAGE_VERSION }}
       is_valid_package_version: ${{ steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION }}
-
-  test-unit-cpp:
-    name: 'Run: Test Unit C++'
-    needs: ['build-binary']
-    uses: './.github/workflows/test_unit_cpp.yml'
-    with:
-      artifact-name: cpp_bindings_linux_tests
-    
-    permissions:
-      contents: read
-      checks: write
   
   publish-jsr:
     name: 'Run: Publish JSR'
-    needs: ['build-binary', 'test-unit-cpp']
+    needs: ['build-binary']
     uses: './.github/workflows/publish_jsr.yml'
     with:
       publish: ${{ needs.build-binary.outputs.is_valid_package_version == 'true' }}
