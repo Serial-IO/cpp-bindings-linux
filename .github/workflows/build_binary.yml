@@ -37,12 +37,12 @@ jobs:
           CXX: g++
 
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --preset linux-gcc-release
 
       - name: 'Build'
         id: 'build'
         run: |
-          cmake --build build --config Release
+          cmake --build --preset linux-gcc-release --target cpp_bindings_linux
 
           . build/env.sh
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
@@ -50,8 +50,9 @@ jobs:
       - name: 'Upload artifacts'
         uses: actions/upload-artifact@v4
         with:
-          name: libcpp_bindings_linux_x86_64
-          path: build/libcpp_bindings_linux.so*
+          if-no-files-found: error
+          name: libcpp_bindings_linux
+          path: build/libcpp_bindings_linux.so
 
       - name: 'Check tag'
         id: 'check-tag'
@@ -71,14 +72,25 @@ jobs:
       package_version: ${{ steps.build.outputs.PACKAGE_VERSION }}
       is_valid_package_version: ${{ steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION }}
 
-  trigger-publish:
-    name: 'Trigger Publish'
+  test-unit-cpp:
+    name: 'Run: Test Unit C++'
     needs: ['build-binary']
-    uses: ./.github/workflows/publish_jsr.yml
+    uses: './.github/workflows/test_unit_cpp.yml'
+    with:
+      artifact-name: cpp_bindings_linux_tests
+    
+    permissions:
+      contents: read
+      checks: write
+  
+  publish-jsr:
+    name: 'Run: Publish JSR'
+    needs: ['build-binary', 'test-unit-cpp']
+    uses: './.github/workflows/publish_jsr.yml'
     with:
       publish: ${{ needs.build-binary.outputs.is_valid_package_version == 'true' }}
       version: ${{ needs.build-binary.outputs.package_version }}
-      artifact-name: libcpp_bindings_linux_x86_64
+      artifact-name: libcpp_bindings_linux
     
     permissions:
       contents: read

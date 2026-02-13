@@ -27,8 +27,8 @@ permissions:
 
 jobs:
   publish-jsr:
+    name: 'Publish JSR'
     runs-on: ubuntu-latest
-
     steps:
       - name: 'Checkout repository'
         uses: actions/checkout@v4
