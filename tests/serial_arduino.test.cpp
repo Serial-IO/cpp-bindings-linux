@@ -22,17 +22,32 @@
 #include <unistd.h>
 #include <unistd.h>
 
+namespace
+{
+auto drainInput(intptr_t handle) -> void
+{
+    std::array<unsigned char, 256> tmp = {};
+    for (;;)
+    {
+        const int res = serialRead(handle, tmp.data(), static_cast<int>(tmp.size()), 10, 0, nullptr);
+        if (res < 0)
+        {
+            FAIL() << "drainInput failed with error " << res;
+        }
+        if (res == 0)
+        {
+            return;
+        }
+    }
+}
+} // namespace
+
 class SerialArduinoTest : public ::testing::Test
 {
   protected:
     void SetUp() override
     {
-<<<<<<< HEAD:tests/serial_arduino.test.cpp
         const char *env_port = std::getenv("SERIAL_TEST_PORT"); // NOLINT(concurrency-mt-unsafe)
-=======
-        // NOLINTNEXTLINE(concurrency-mt-unsafe)
-        const char *env_port = std::getenv("SERIAL_TEST_PORT");
->>>>>>> 314c2e6 (Remove SERIAL_TEST_SKIP_INIT_DELAY from CI workflows and refactor serialWrite function for improved timeout handling):tests/test_serial_arduino.cpp
         const char *port = env_port != nullptr ? env_port : "/dev/ttyUSB0";
         handle = serialOpen(const_cast<void *>(static_cast<const void *>(port)), 115200, 8, 0, 0, nullptr);
 
@@ -77,19 +92,11 @@ TEST_F(SerialArduinoTest, WriteReadEcho)
 
     usleep(500000);
 
-<<<<<<< HEAD:tests/serial_arduino.test.cpp
     std::array<char, 256> read_buffer{};
     int read_bytes = serialRead(handle, read_buffer.data(), static_cast<int>(read_buffer.size()) - 1, 2000, 1, nullptr);
 
     EXPECT_GT(read_bytes, 0) << "Should read at least some bytes";
     EXPECT_LE(read_bytes, static_cast<int>(read_buffer.size()) - 1) << "Should not overflow buffer";
-=======
-    std::array<char, 256> read_buffer = {};
-    int read_bytes = serialRead(handle, read_buffer.data(), static_cast<int>(read_buffer.size()) - 1, 2000, 1, nullptr);
-
-    EXPECT_GT(read_bytes, 0) << "Should read at least some bytes";
-    EXPECT_LE(read_bytes, static_cast<int>(read_buffer.size() - 1)) << "Should not overflow buffer";
->>>>>>> 314c2e6 (Remove SERIAL_TEST_SKIP_INIT_DELAY from CI workflows and refactor serialWrite function for improved timeout handling):tests/test_serial_arduino.cpp
 
     read_buffer[static_cast<size_t>(read_bytes)] = '\0';
     EXPECT_STRNE(read_buffer.data(), "") << "Should receive echo from Arduino";
@@ -99,15 +106,10 @@ TEST_F(SerialArduinoTest, MultipleEchoCycles)
 {
     const std::array<const char *, 3> messages = {"Test1\n", "Test2\n", "Test3\n"};
 
-<<<<<<< HEAD:tests/serial_arduino.test.cpp
     for (size_t i = 0; i < messages.size(); ++i)
-=======
-    for (size_t index = 0; index < messages.size(); ++index)
->>>>>>> 314c2e6 (Remove SERIAL_TEST_SKIP_INIT_DELAY from CI workflows and refactor serialWrite function for improved timeout handling):tests/test_serial_arduino.cpp
     {
         int msg_len = static_cast<int>(strlen(messages[index]));
 
-<<<<<<< HEAD:tests/serial_arduino.test.cpp
         int written = serialWrite(handle, messages[i], msg_len, 1000, 1, nullptr);
         EXPECT_EQ(written, msg_len) << "Cycle " << i << ": write failed";
 
@@ -117,29 +119,35 @@ TEST_F(SerialArduinoTest, MultipleEchoCycles)
         int read_bytes =
             serialRead(handle, read_buffer.data(), static_cast<int>(read_buffer.size()) - 1, 2000, 1, nullptr);
         EXPECT_GT(read_bytes, 0) << "Cycle " << i << ": read failed";
-=======
-        int written = serialWrite(handle, messages[index], msg_len, 1000, 1, nullptr);
-        EXPECT_EQ(written, msg_len) << "Cycle " << index << ": write failed";
-
-        usleep(500000);
-
-        std::array<char, 256> read_buffer = {};
-        int read_bytes =
-            serialRead(handle, read_buffer.data(), static_cast<int>(read_buffer.size()) - 1, 2000, 1, nullptr);
-        EXPECT_GT(read_bytes, 0) << "Cycle " << index << ": read failed";
->>>>>>> 314c2e6 (Remove SERIAL_TEST_SKIP_INIT_DELAY from CI workflows and refactor serialWrite function for improved timeout handling):tests/test_serial_arduino.cpp
     }
 }
 
 TEST_F(SerialArduinoTest, ReadTimeout)
 {
-<<<<<<< HEAD:tests/serial_arduino.test.cpp
     std::array<char, 256> buffer{};
-=======
-    std::array<char, 256> buffer = {};
->>>>>>> 314c2e6 (Remove SERIAL_TEST_SKIP_INIT_DELAY from CI workflows and refactor serialWrite function for improved timeout handling):tests/test_serial_arduino.cpp
     int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 100, 1, nullptr);
     EXPECT_GE(read_bytes, 0) << "Timeout should return 0, not error";
+}
+
+TEST_F(SerialArduinoTest, Read60BytesWithoutWritingTimesOut)
+{
+    drainInput(handle);
+    std::array<unsigned char, 60> buffer = {};
+    const int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 200, 1, nullptr);
+    EXPECT_EQ(read_bytes, 0) << "Expected timeout (0 bytes) when no data is sent";
+}
+
+TEST_F(SerialArduinoTest, Write10BytesRead60Returns10ThenTimesOut)
+{
+    drainInput(handle);
+    const std::array<unsigned char, 10> payload = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    const int written = serialWrite(handle, payload.data(), static_cast<int>(payload.size()), 2000, 1, nullptr);
+    ASSERT_EQ(written, static_cast<int>(payload.size()));
+
+    std::array<unsigned char, 60> buffer = {};
+    const int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 200, 1, nullptr);
+    EXPECT_EQ(read_bytes, static_cast<int>(payload.size()))
+        << "Expected to read the 10 echoed bytes, then timeout waiting for more";
 }
 
 TEST_F(SerialArduinoTest, AbortRead)
@@ -237,11 +245,7 @@ TEST_F(SerialArduinoTest, AbortWriteDuringLargeTransfer)
 
 TEST(SerialInvalidHandleTest, InvalidHandleRead)
 {
-<<<<<<< HEAD:tests/serial_arduino.test.cpp
     std::array<char, 256> buffer{};
-=======
-    std::array<char, 256> buffer = {};
->>>>>>> 314c2e6 (Remove SERIAL_TEST_SKIP_INIT_DELAY from CI workflows and refactor serialWrite function for improved timeout handling):tests/test_serial_arduino.cpp
     int result = serialRead(-1, buffer.data(), static_cast<int>(buffer.size()), 1000, 1, nullptr);
     EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError))
         << "Should return error for invalid handle";

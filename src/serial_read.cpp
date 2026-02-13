@@ -41,13 +41,14 @@ auto handleWaitResultForRead(int wait_result, int abort_fd, ErrorCallbackT error
     return std::nullopt;
 }
 
-auto readUntilNotReady(int fd, int abort_fd, unsigned char *buf, int buffer_size, int already_read,
-                       ErrorCallbackT error_callback) -> int
+auto readUntilTimeoutOrFull(int fd, int abort_fd, unsigned char *buf, int buffer_size, int already_read,
+                            int per_iteration_timeout_ms, ErrorCallbackT error_callback) -> int
 {
     int total_read = already_read;
     while (total_read < buffer_size)
     {
-        const int wait_result = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, 0, true);
+        const int wait_result =
+            cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, per_iteration_timeout_ms, true);
         if (const auto immediate = handleWaitResultForRead(wait_result, abort_fd, error_callback);
             immediate.has_value())
         {
@@ -66,6 +67,7 @@ auto readUntilNotReady(int fd, int abort_fd, unsigned char *buf, int buffer_size
         }
         if (more_bytes == 0)
         {
+            // Driver reported readiness but returned nothing; treat like "no more data".
             return total_read;
         }
         total_read += static_cast<int>(more_bytes);
@@ -76,7 +78,7 @@ auto readUntilNotReady(int fd, int abort_fd, unsigned char *buf, int buffer_size
 
 extern "C"
 {
-    MODULE_API auto serialRead(int64_t handle, void *buffer, int buffer_size, int timeout_ms, int /*multiplier*/,
+    MODULE_API auto serialRead(int64_t handle, void *buffer, int buffer_size, int timeout_ms, int multiplier,
                                ErrorCallbackT error_callback) -> int
     {
         if (buffer == nullptr || buffer_size <= 0)
@@ -127,7 +129,21 @@ extern "C"
             }
         }
 
-        return readUntilNotReady(fd, abort_fd, buf, buffer_size, static_cast<int>(bytes_read), error_callback);
+        const int already_read = static_cast<int>(bytes_read);
+
+        if (multiplier == 0)
+        {
+            return already_read;
+        }
+
+        const int per_byte_timeout_ms = timeout_ms * multiplier;
+        if (per_byte_timeout_ms <= 0)
+        {
+            return readUntilTimeoutOrFull(fd, abort_fd, buf, buffer_size, already_read, 0, error_callback);
+        }
+
+        return readUntilTimeoutOrFull(fd, abort_fd, buf, buffer_size, already_read, per_byte_timeout_ms,
+                                      error_callback);
     }
 
 } // extern "C"
