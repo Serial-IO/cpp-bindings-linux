@@ -29,17 +29,17 @@ extern "C"
         const unsigned char token = 1;
         for (;;)
         {
-            const ssize_t n = ::write(pipes->write_abort_w, &token, 1);
-            if (n == 1)
+            const ssize_t num_written = ::write(pipes->write_abort_w, &token, 1);
+            if (num_written == 1)
             {
                 return static_cast<int>(cpp_core::StatusCodes::kSuccess);
             }
-            if (n < 0 && errno == EINTR)
+            if (num_written < 0 && errno == EINTR)
             {
                 continue;
             }
             // Pipe already full -> treat as success (abort already requested).
-            if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+            if (num_written < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
             {
                 return static_cast<int>(cpp_core::StatusCodes::kSuccess);
             }

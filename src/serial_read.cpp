@@ -6,7 +6,73 @@
 
 #include <cerrno>
 #include <limits>
+#include <optional>
 #include <unistd.h>
+
+namespace
+{
+constexpr int kGraceRetryTimeoutMs = 10;
+
+auto tryReadOnceNonBlocking(int fd, unsigned char *dst, int size) -> ssize_t
+{
+    const ssize_t bytes = ::read(fd, dst, size);
+    if (bytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+    {
+        return 0;
+    }
+    return bytes;
+}
+
+auto handleWaitResultForRead(int wait_result, int abort_fd, ErrorCallbackT error_callback) -> std::optional<int>
+{
+    if (wait_result < 0)
+    {
+        return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+    }
+    if (wait_result == 0)
+    {
+        return 0;
+    }
+    if (wait_result == 2)
+    {
+        cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
+        return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
+    }
+    return std::nullopt;
+}
+
+auto readUntilNotReady(int fd, int abort_fd, unsigned char *buf, int buffer_size, int already_read,
+                       ErrorCallbackT error_callback) -> int
+{
+    int total_read = already_read;
+    while (total_read < buffer_size)
+    {
+        const int wait_result = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, 0, true);
+        if (const auto immediate = handleWaitResultForRead(wait_result, abort_fd, error_callback);
+            immediate.has_value())
+        {
+            // timeout -> return what we have; abort/error handled by helper
+            if (*immediate == 0)
+            {
+                return total_read;
+            }
+            return *immediate;
+        }
+
+        const ssize_t more_bytes = tryReadOnceNonBlocking(fd, buf + total_read, buffer_size - total_read);
+        if (more_bytes < 0)
+        {
+            return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+        }
+        if (more_bytes == 0)
+        {
+            return total_read;
+        }
+        total_read += static_cast<int>(more_bytes);
+    }
+    return total_read;
+}
+} // namespace
 
 extern "C"
 {
@@ -32,30 +98,12 @@ extern "C"
         const int abort_fd = abort_pipes ? abort_pipes->read_abort_r : -1;
 
         const int ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, timeout_ms, true);
-        if (ready < 0)
+        if (const auto immediate = handleWaitResultForRead(ready, abort_fd, error_callback); immediate.has_value())
         {
-            return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
-        }
-        if (ready == 2)
-        {
-            cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
-            return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
-        }
-        if (ready == 0)
-        {
-            return 0;
+            return *immediate;
         }
 
-        const auto try_read_once = [&](unsigned char *dst, int size) -> ssize_t {
-            const ssize_t bytes = ::read(fd, dst, size);
-            if (bytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-            {
-                return 0;
-            }
-            return bytes;
-        };
-
-        ssize_t bytes_read = try_read_once(buf, buffer_size);
+        ssize_t bytes_read = tryReadOnceNonBlocking(fd, buf, buffer_size);
         if (bytes_read < 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
@@ -64,53 +112,22 @@ extern "C"
         // Some drivers can report readiness but still return 0; give it a tiny grace period and retry once.
         if (bytes_read == 0)
         {
-            const int retry_ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, 10, true);
-            if (retry_ready < 0)
+            const int retry_ready =
+                cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, kGraceRetryTimeoutMs, true);
+            if (const auto immediate = handleWaitResultForRead(retry_ready, abort_fd, error_callback);
+                immediate.has_value())
             {
-                return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
+                return *immediate;
             }
-            if (retry_ready == 2)
-            {
-                cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
-                return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
-            }
-            if (retry_ready == 0)
-            {
-                return 0;
-            }
-            bytes_read = try_read_once(buf, buffer_size);
+
+            bytes_read = tryReadOnceNonBlocking(fd, buf, buffer_size);
             if (bytes_read <= 0)
             {
                 return 0;
             }
         }
 
-        int total_read = static_cast<int>(bytes_read);
-        while (total_read < buffer_size)
-        {
-            const int loop_ready = cpp_bindings_linux::detail::waitFdReadyOrAbort(fd, abort_fd, 0, true);
-            if (loop_ready < 0)
-            {
-                return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kReadError);
-            }
-            if (loop_ready == 2)
-            {
-                cpp_bindings_linux::detail::drainNonBlockingFd(abort_fd);
-                return static_cast<int>(cpp_core::StatusCodes::kAbortReadError);
-            }
-            if (loop_ready == 0)
-            {
-                break;
-            }
-            const ssize_t more_bytes = try_read_once(buf + total_read, buffer_size - total_read);
-            if (more_bytes <= 0)
-            {
-                break;
-            }
-            total_read += static_cast<int>(more_bytes);
-        }
-
-        return total_read;
+        return readUntilNotReady(fd, abort_fd, buf, buffer_size, static_cast<int>(bytes_read), error_callback);
     }
 
 } // extern "C"
