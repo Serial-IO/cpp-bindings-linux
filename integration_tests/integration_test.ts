@@ -23,6 +23,8 @@ Deno.test({
         assertExists(lib.serialClose);
         assertExists(lib.serialRead);
         assertExists(lib.serialWrite);
+        assertExists(lib.serialAbortRead);
+        assertExists(lib.serialAbortWrite);
 
         console.log("cpp-bindings-linux library loaded and symbols resolved");
     },

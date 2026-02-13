@@ -1,5 +1,6 @@
 // Integration test: serial communication with Arduino echo script on /dev/ttyUSB0
 
+#include <cpp_core/interface/serial_abort_read.h>
 #include <cpp_core/interface/serial_close.h>
 #include <cpp_core/interface/serial_open.h>
 #include <cpp_core/interface/serial_read.h>
@@ -8,8 +9,13 @@
 #include <cpp_core/status_codes.h>
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
 #include <array>
 #include <cstring>
+#include <thread>
+#include <unistd.h>
 #include <unistd.h>
 
 class SerialArduinoTest : public ::testing::Test
@@ -27,7 +33,11 @@ class SerialArduinoTest : public ::testing::Test
                          << "'. Set SERIAL_TEST_PORT or connect Arduino on /dev/ttyUSB0.";
         }
 
-        usleep(2000000);
+        const char *skip_delay = std::getenv("SERIAL_TEST_SKIP_INIT_DELAY");
+        if (skip_delay == nullptr || std::strcmp(skip_delay, "1") != 0)
+        {
+            usleep(2000000);
+        }
     }
 
     void TearDown() override
@@ -92,6 +102,21 @@ TEST_F(SerialArduinoTest, ReadTimeout)
     std::array<char, 256> buffer{};
     int read_bytes = serialRead(handle, buffer.data(), static_cast<int>(buffer.size()), 100, 1, nullptr);
     EXPECT_GE(read_bytes, 0) << "Timeout should return 0, not error";
+}
+
+TEST_F(SerialArduinoTest, AbortRead)
+{
+    std::atomic<int> read_result{999};
+    std::thread reader([&] {
+        unsigned char buffer[16] = {};
+        read_result.store(serialRead(handle_, buffer, sizeof(buffer), 10000, 1, nullptr));
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(serialAbortRead(handle_, nullptr), 0);
+
+    reader.join();
+    EXPECT_EQ(read_result.load(), static_cast<int>(cpp_core::StatusCodes::kAbortReadError));
 }
 
 TEST(SerialInvalidHandleTest, InvalidHandleRead)

@@ -23,6 +23,14 @@ const symbols = {
         parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
         result: "i32" as const,
     },
+    serialAbortRead: {
+        parameters: ["i64", "pointer"] as const,
+        result: "i32" as const,
+    },
+    serialAbortWrite: {
+        parameters: ["i64", "pointer"] as const,
+        result: "i32" as const,
+    },
 };
 
 /**
