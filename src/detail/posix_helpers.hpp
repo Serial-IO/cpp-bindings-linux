@@ -95,6 +95,37 @@ inline auto failErrno(Callback error_callback, cpp_core::StatusCodes code) -> Re
     return static_cast<Ret>(code);
 }
 
+// Drain any pending bytes from a non-blocking FD (used for abort pipes).
+inline auto drainNonBlockingFd(int file_descriptor) -> void
+{
+    if (file_descriptor < 0)
+    {
+        return;
+    }
+    unsigned char buf[64];
+    for (;;)
+    {
+        const ssize_t n = ::read(file_descriptor, buf, sizeof(buf));
+        if (n > 0)
+        {
+            continue;
+        }
+        if (n == 0)
+        {
+            return;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            return;
+        }
+        if (errno == EINTR)
+        {
+            continue;
+        }
+        return;
+    }
+}
+
 // Poll helper used by read/write to implement timeouts.
 // Returns: -1 on poll error, 0 on timeout/not-ready, 1 on ready.
 inline auto waitFdReady(int file_descriptor, int timeout_ms, bool for_read) -> int
@@ -118,6 +149,50 @@ inline auto waitFdReady(int file_descriptor, int timeout_ms, bool for_read) -> i
         return 1;
     }
     if (!for_read && ((poll_fd.revents & POLLOUT) != 0))
+    {
+        return 1;
+    }
+    return 0;
+}
+
+// Poll helper with an optional abort FD.
+// Returns: -1 on poll error, 0 on timeout/not-ready, 1 on ready, 2 on abort.
+inline auto waitFdReadyOrAbort(int file_descriptor, int abort_fd, int timeout_ms, bool for_read) -> int
+{
+    struct pollfd fds[2] = {};
+    fds[0].fd = file_descriptor;
+    fds[0].events = for_read ? POLLIN : POLLOUT;
+    fds[0].revents = 0;
+
+    nfds_t nfds = 1;
+    if (abort_fd >= 0)
+    {
+        fds[1].fd = abort_fd;
+        fds[1].events = POLLIN;
+        fds[1].revents = 0;
+        nfds = 2;
+    }
+
+    const int poll_result = poll(fds, nfds, timeout_ms);
+    if (poll_result < 0)
+    {
+        return -1;
+    }
+    if (poll_result == 0)
+    {
+        return 0;
+    }
+
+    if (abort_fd >= 0 && ((fds[1].revents & POLLIN) != 0))
+    {
+        return 2;
+    }
+
+    if (for_read && ((fds[0].revents & POLLIN) != 0))
+    {
+        return 1;
+    }
+    if (!for_read && ((fds[0].revents & POLLOUT) != 0))
     {
         return 1;
     }
