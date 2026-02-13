@@ -2,6 +2,7 @@
 
 #include <cpp_core/status_codes.h>
 
+#include <array>
 #include <cerrno>
 #include <poll.h>
 #include <string>
@@ -102,15 +103,15 @@ inline auto drainNonBlockingFd(int file_descriptor) -> void
     {
         return;
     }
-    unsigned char buf[64];
+    std::array<unsigned char, 64> buf = {};
     for (;;)
     {
-        const ssize_t n = ::read(file_descriptor, buf, sizeof(buf));
-        if (n > 0)
+        const ssize_t num_read = ::read(file_descriptor, buf.data(), buf.size());
+        if (num_read > 0)
         {
             continue;
         }
-        if (n == 0)
+        if (num_read == 0)
         {
             return;
         }
@@ -124,6 +125,31 @@ inline auto drainNonBlockingFd(int file_descriptor) -> void
         }
         return;
     }
+}
+
+// Returns true if the abort FD is signaled (has at least one byte to read). If true, drains it.
+inline auto consumeAbortIfSet(int abort_fd) -> bool
+{
+    if (abort_fd < 0)
+    {
+        return false;
+    }
+    struct pollfd poll_fd = {};
+    poll_fd.fd = abort_fd;
+    poll_fd.events = POLLIN;
+    poll_fd.revents = 0;
+
+    const int poll_result = poll(&poll_fd, 1, 0);
+    if (poll_result <= 0)
+    {
+        return false;
+    }
+    if ((poll_fd.revents & POLLIN) == 0)
+    {
+        return false;
+    }
+    drainNonBlockingFd(abort_fd);
+    return true;
 }
 
 // Poll helper used by read/write to implement timeouts.
@@ -159,7 +185,7 @@ inline auto waitFdReady(int file_descriptor, int timeout_ms, bool for_read) -> i
 // Returns: -1 on poll error, 0 on timeout/not-ready, 1 on ready, 2 on abort.
 inline auto waitFdReadyOrAbort(int file_descriptor, int abort_fd, int timeout_ms, bool for_read) -> int
 {
-    struct pollfd fds[2] = {};
+    std::array<struct pollfd, 2> fds = {};
     fds[0].fd = file_descriptor;
     fds[0].events = for_read ? POLLIN : POLLOUT;
     fds[0].revents = 0;
@@ -173,7 +199,7 @@ inline auto waitFdReadyOrAbort(int file_descriptor, int abort_fd, int timeout_ms
         nfds = 2;
     }
 
-    const int poll_result = poll(fds, nfds, timeout_ms);
+    const int poll_result = poll(fds.data(), nfds, timeout_ms);
     if (poll_result < 0)
     {
         return -1;
