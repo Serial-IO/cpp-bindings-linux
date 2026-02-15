@@ -108,7 +108,7 @@ TEST_F(SerialArduinoTest, MultipleEchoCycles)
 
     for (size_t i = 0; i < messages.size(); ++i)
     {
-        int msg_len = static_cast<int>(strlen(messages[index]));
+        int msg_len = static_cast<int>(strlen(messages[i]));
 
         int written = serialWrite(handle, messages[i], msg_len, 1000, 1, nullptr);
         EXPECT_EQ(written, msg_len) << "Cycle " << i << ": write failed";
