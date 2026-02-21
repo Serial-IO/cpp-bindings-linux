@@ -24,6 +24,11 @@ extern "C"
                                                             "Invalid handle");
         }
 
+        if (timeout_ms < 0)
+        {
+            timeout_ms = 0;
+        }
+
         const int fd = static_cast<int>(handle);
         auto *buf = static_cast<unsigned char *>(buffer);
 
