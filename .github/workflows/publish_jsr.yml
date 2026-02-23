@@ -48,9 +48,8 @@ jobs:
 
       - name: 'Prepare files for JSR'
         run: |
-          ./jsr/scripts/copy_binary.sh \
-            ./artifacts/libcpp_bindings_linux.so \
-            ./jsr/bin/x86_64.so
+          mkdir -p ./artifacts
+          cp ./artifacts/libcpp_bindings_linux.so ./jsr/bin/x86_64.so
 
           ./jsr/scripts/binary_to_json.sh \
             ./artifacts/libcpp_bindings_linux.so \
