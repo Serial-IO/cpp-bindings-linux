@@ -1,9 +1,9 @@
 #include <cpp_core/interface/serial_close.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/status_codes.hpp>
+#include <cpp_core/validation.hpp>
 
 #include "detail/posix_helpers.hpp"
 
-#include <limits>
 #include <unistd.h>
 
 extern "C"
@@ -13,12 +13,13 @@ extern "C"
     {
         if (handle <= 0)
         {
-            return static_cast<int>(cpp_core::StatusCodes::kSuccess);
+            return 0;
         }
-        if (handle > std::numeric_limits<int>::max())
+
+        const auto handle_ok = cpp_core::validateHandle<int>(handle, error_callback);
+        if (handle_ok < 0)
         {
-            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kInvalidHandleError,
-                                                            "Invalid handle");
+            return handle_ok;
         }
 
         const int fd = static_cast<int>(handle);
@@ -27,7 +28,7 @@ extern "C"
             return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kCloseHandleError);
         }
 
-        return static_cast<int>(cpp_core::StatusCodes::kSuccess);
+        return 0;
     }
 
 } // extern "C"

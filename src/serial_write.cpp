@@ -1,11 +1,9 @@
 #include <cpp_core/interface/serial_write.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/validation.hpp>
 
 #include "detail/posix_helpers.hpp"
 
 #include <cerrno>
-#include <fcntl.h>
-#include <limits>
 #include <termios.h>
 #include <unistd.h>
 
@@ -15,22 +13,19 @@ extern "C"
     MODULE_API auto serialWrite(int64_t handle, const void *buffer, int buffer_size, int timeout_ms, int /*multiplier*/,
                                 ErrorCallbackT error_callback) -> int
     {
-        if (buffer == nullptr || buffer_size <= 0)
+        const auto buf_ok = cpp_core::validateBuffer<int>(buffer, buffer_size, error_callback);
+        if (buf_ok < 0)
         {
-            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kBufferError,
-                                                            "Invalid buffer or buffer_size");
+            return buf_ok;
         }
 
-        if (handle <= 0 || handle > std::numeric_limits<int>::max())
+        const auto handle_ok = cpp_core::validateHandle<int>(handle, error_callback);
+        if (handle_ok < 0)
         {
-            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kInvalidHandleError,
-                                                            "Invalid handle");
+            return handle_ok;
         }
 
-        if (timeout_ms < 0)
-        {
-            timeout_ms = 0;
-        }
+        timeout_ms = cpp_core::clampTimeout(timeout_ms);
 
         const int fd = static_cast<int>(handle);
 

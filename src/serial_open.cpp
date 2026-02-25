@@ -1,5 +1,6 @@
 #include <cpp_core/interface/serial_open.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/strong_types.hpp>
+#include <cpp_core/validation.hpp>
 
 #include "detail/posix_helpers.hpp"
 
@@ -13,9 +14,6 @@
 #define TCSETS2 0x402C542B
 #endif
 
-// Some libcs (or kernel headers) may not define BOTHER even if TCGETS2 exists.
-// Define it here if missing so the build works in minimal environments
-// (e.g., Deno's Debian-based CI containers).
 #ifndef BOTHER
 #define BOTHER 0x010000
 #endif
@@ -40,28 +38,16 @@ extern "C"
     MODULE_API auto serialOpen(void *port, int baudrate, int data_bits, int parity, int stop_bits,
                                ErrorCallbackT error_callback) -> intptr_t
     {
-        if (port == nullptr)
+        const auto params_ok = cpp_core::validateOpenParams<intptr_t>(port, baudrate, data_bits, error_callback);
+        if (params_ok < 0)
         {
-            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kNotFoundError,
-                                                                 "Port parameter is nullptr");
-        }
-
-        if (baudrate < 300)
-        {
-            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
-                                                                 "Invalid baudrate: must be >= 300");
-        }
-
-        if (data_bits < 5 || data_bits > 8)
-        {
-            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
-                                                                 "Invalid data bits: must be 5-8");
+            return params_ok;
         }
 
         const char *port_path = static_cast<const char *>(port);
 
         cpp_bindings_linux::detail::UniqueFd handle(open(port_path, O_RDWR | O_NOCTTY | O_NONBLOCK));
-        if (!handle.valid())
+        if (!handle)
         {
             return cpp_bindings_linux::detail::failErrno<intptr_t>(error_callback,
                                                                    cpp_core::StatusCodes::kNotFoundError);
@@ -95,39 +81,36 @@ extern "C"
             tty.c_cflag |= CS8;
             break;
         default:
-            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
-                                                                 "Invalid data bits");
+            return cpp_core::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                               "Invalid data bits");
         }
 
+        const auto par = static_cast<cpp_core::Parity>(parity);
         tty.c_cflag &= ~(PARENB | PARODD);
-        switch (parity)
+        switch (par)
         {
-        // parity mapping:
-        //   0 = no parity
-        //   1 = even parity
-        //   2 = odd parity
-        case 0:
+        case cpp_core::Parity::kNone:
             break;
-        case 1:
+        case cpp_core::Parity::kEven:
             tty.c_cflag |= PARENB;
             break;
-        case 2:
+        case cpp_core::Parity::kOdd:
             tty.c_cflag |= (PARENB | PARODD);
             break;
         default:
-            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
-                                                                 "Invalid parity");
+            return cpp_core::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError, "Invalid parity");
         }
 
-        // stop_bits mapping:
-        //   0 or 1 = 1 stop bit (0 kept for backward compatibility with callers using "default")
-        //   2      = 2 stop bits
-        if (stop_bits != 0 && stop_bits != 1 && stop_bits != 2)
+        // stop_bits: 0 or 1 = one stop bit (0 kept for backward compat), 2 = two stop bits
+        if (stop_bits != static_cast<int>(cpp_core::StopBits::kOne) && stop_bits != 1 &&
+            stop_bits != static_cast<int>(cpp_core::StopBits::kTwo))
         {
-            return cpp_bindings_linux::detail::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
-                                                                 "Invalid stop bits: must be 0, 1, or 2");
+            return cpp_core::failMsg<intptr_t>(error_callback, cpp_core::StatusCodes::kSetStateError,
+                                               "Invalid stop bits: must be 0, 1, or 2");
         }
-        if (stop_bits == 2)
+        const auto sb = (stop_bits == static_cast<int>(cpp_core::StopBits::kTwo)) ? cpp_core::StopBits::kTwo
+                                                                                   : cpp_core::StopBits::kOne;
+        if (sb == cpp_core::StopBits::kTwo)
         {
             tty.c_cflag |= CSTOPB;
         }
@@ -149,14 +132,7 @@ extern "C"
                                                                    cpp_core::StatusCodes::kSetStateError);
         }
 
-        // Keep O_NONBLOCK enabled. Our read/write APIs implement timeouts via poll(),
-        // and leaving the FD non-blocking prevents any unexpected blocking syscalls.
-
         tcflush(handle.get(), TCIOFLUSH);
-
-        // Note: Some devices (e.g., Arduino) reset when the serial port is opened.
-        // It is recommended to wait 1-2 seconds after opening before sending data
-        // to allow the device to initialize.
 
         return static_cast<intptr_t>(handle.release());
     }
