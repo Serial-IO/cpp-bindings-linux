@@ -3,6 +3,8 @@
 #include <cpp_core/status_codes.h>
 
 #include <cerrno>
+#include <cstdint>
+#include <limits>
 #include <poll.h>
 #include <string>
 #include <system_error>
@@ -93,6 +95,17 @@ inline auto failErrno(Callback error_callback, cpp_core::StatusCodes code) -> Re
         error_callback(static_cast<int>(code), error_msg.c_str());
     }
     return static_cast<Ret>(code);
+}
+
+template <typename Ret, typename Callback>
+inline auto validatePosixFd(int64_t handle, Callback error_callback, int *out_fd) -> Ret
+{
+    if (handle <= 0 || handle > std::numeric_limits<int>::max())
+    {
+        return failMsg<Ret>(error_callback, cpp_core::StatusCodes::kInvalidHandleError, "Invalid handle");
+    }
+    *out_fd = static_cast<int>(handle);
+    return static_cast<Ret>(cpp_core::StatusCodes::kSuccess);
 }
 
 // Poll helper used by read/write to implement timeouts.
