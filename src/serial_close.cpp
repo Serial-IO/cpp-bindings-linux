@@ -1,5 +1,4 @@
 #include <cpp_core/interface/serial_close.h>
-#include <cpp_core/status_codes.h>
 
 #include "detail/posix_helpers.hpp"
 
@@ -13,21 +12,25 @@ extern "C"
     {
         if (handle <= 0)
         {
-            return static_cast<int>(cpp_core::StatusCodes::kSuccess);
+            return static_cast<int>(cpp_core::StatusCode::kSuccess);
         }
+
         if (handle > std::numeric_limits<int>::max())
         {
-            return cpp_bindings_linux::detail::failMsg<int>(error_callback, cpp_core::StatusCodes::kInvalidHandleError,
-                                                            "Invalid handle");
+            return cpp_bindings_linux::detail::failMsg<int>(
+                error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Connection::kInvalidHandleError),
+                "Invalid handle");
         }
 
         const int fd = static_cast<int>(handle);
         if (close(fd) != 0)
         {
-            return cpp_bindings_linux::detail::failErrno<int>(error_callback, cpp_core::StatusCodes::kCloseHandleError);
+            return cpp_bindings_linux::detail::failErrno<int>(
+                error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Connection::kCloseHandleError));
         }
 
-        return static_cast<int>(cpp_core::StatusCodes::kSuccess);
+        cpp_bindings_linux::detail::removeHandleState(fd);
+        return static_cast<int>(cpp_core::StatusCode::kSuccess);
     }
 
 } // extern "C"

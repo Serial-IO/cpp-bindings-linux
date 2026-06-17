@@ -5,12 +5,19 @@
 #include <cpp_core/interface/serial_read.h>
 #include <cpp_core/interface/serial_write.h>
 #include <cpp_core/serial.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/status_code.h>
+
 #include <gtest/gtest.h>
 
 #include <array>
 #include <cstring>
 #include <unistd.h>
+
+namespace
+{
+constexpr auto kInvalidHandleError = static_cast<int>(cpp_core::StatusCode::Connection::kInvalidHandleError);
+constexpr auto kSuccess = static_cast<int>(cpp_core::StatusCode::kSuccess);
+} // namespace
 
 class SerialArduinoTest : public ::testing::Test
 {
@@ -98,20 +105,18 @@ TEST(SerialInvalidHandleTest, InvalidHandleRead)
 {
     std::array<char, 256> buffer{};
     int result = serialRead(-1, buffer.data(), static_cast<int>(buffer.size()), 1000, 1, nullptr);
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError))
-        << "Should return error for invalid handle";
+    EXPECT_EQ(result, kInvalidHandleError) << "Should return error for invalid handle";
 }
 
 TEST(SerialInvalidHandleTest, InvalidHandleWrite)
 {
     const char *data = "test";
     int result = serialWrite(-1, data, 4, 1000, 1, nullptr);
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError))
-        << "Should return error for invalid handle";
+    EXPECT_EQ(result, kInvalidHandleError) << "Should return error for invalid handle";
 }
 
 TEST(SerialInvalidHandleTest, InvalidHandleClose)
 {
     int result = serialClose(-1, nullptr);
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kSuccess));
+    EXPECT_EQ(result, kSuccess);
 }
