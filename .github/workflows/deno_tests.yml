@@ -21,16 +21,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup GCC
+        uses: egor-tensin/setup-gcc@v2
+        with:
+          version: '16'
+          platform: 'x64'
+
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y cmake ninja-build g++ socat git
+          apt-get install -y cmake ninja-build socat git
 
       - name: Configure CMake
-        env:
-          CXX: g++
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc-16 \
+            -DCMAKE_CXX_COMPILER=g++-16
 
       - name: Build
         run: |
@@ -49,5 +56,4 @@ jobs:
           SERIAL_TEST_PORT: /tmp/ttyCI_A
         run: |
           deno task test
-
 

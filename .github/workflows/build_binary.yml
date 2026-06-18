@@ -27,7 +27,7 @@ jobs:
       - name: 'Setup GCC'
         uses: egor-tensin/setup-gcc@v2
         with:
-          version: '14'
+          version: '16'
           platform: 'x64'
 
       - name: 'Setup CMake'
@@ -36,11 +36,10 @@ jobs:
           cmake-version: '3.31.x'
 
       - name: 'Configure CMake'
-        env:
-          CXX: g++
-
         run: |
-          cmake --preset linux-gcc-release
+          cmake --preset linux-gcc-release \
+            -DCMAKE_C_COMPILER=gcc-16 \
+            -DCMAKE_CXX_COMPILER=g++-16
 
       - name: 'Build'
         run: |
@@ -91,7 +90,7 @@ jobs:
     needs: ['build-binary']
     uses: './.github/workflows/test_unit_cpp.yml'
     with:
-      artifact-name: cpp_bindings_linux_tests
+      artifact-name: libcpp_bindings_linux
     
     permissions:
       contents: read

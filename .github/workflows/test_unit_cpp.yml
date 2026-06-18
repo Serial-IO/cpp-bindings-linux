@@ -26,13 +26,13 @@ jobs:
       - name: 'Download artifact'
         uses: actions/download-artifact@v4
         with:
-          name: ${{ github.event.inputs.artifact-name }}
+          name: ${{ inputs.artifact-name }}
           path: 'artifacts'
       
       - name: 'Setup GCC'
         uses: egor-tensin/setup-gcc@v2
         with:
-          version: '14'
+          version: '16'
           platform: 'x64'
 
       - name: 'Setup CMake'
@@ -42,7 +42,9 @@ jobs:
 
       - name: 'Configure CMake'
         run: |
-          cmake --preset linux-gcc-release
+          cmake --preset linux-gcc-release \
+            -DCMAKE_C_COMPILER=gcc-16 \
+            -DCMAKE_CXX_COMPILER=g++-16
       
       - name: 'Build'
         id: 'build'
@@ -91,6 +93,4 @@ jobs:
           annotate_notice: true
           transformers: '[{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]'
           check_title_template: '{{FILE_NAME}} | {{TEST_NAME}}'
-
-
 
