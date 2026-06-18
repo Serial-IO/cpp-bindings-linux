@@ -53,6 +53,12 @@ auto sleepForMilliseconds(int milliseconds) -> void
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
+auto runningInGitHubActions() -> bool
+{
+    const char *value = std::getenv("GITHUB_ACTIONS"); // NOLINT(concurrency-mt-unsafe)
+    return value != nullptr && std::strcmp(value, "true") == 0;
+}
+
 struct IoCallbackCounter
 {
     static inline IoCallbackCounter *instance = nullptr;
@@ -303,6 +309,11 @@ TEST_F(SerialArduinoTest, CanObserveAndClearPendingInput)
 
 TEST_F(SerialArduinoTest, CanRoundTripLineSettingsAndRecoverCommunication)
 {
+    if (runningInGitHubActions())
+    {
+        GTEST_SKIP() << "Virtual CI serial endpoints do not reliably support the line-setting roundtrip semantics.";
+    }
+
     EXPECT_EQ(serialGetBaudrate(handle_, nullptr), kDefaultBaudrate);
     EXPECT_EQ(serialGetDataBits(handle_, nullptr), 8);
     EXPECT_EQ(serialGetParity(handle_, nullptr), 0);
