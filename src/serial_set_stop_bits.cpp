@@ -4,6 +4,7 @@
 #include "detail/posix_termios2.hpp"
 
 #include <sys/ioctl.h>
+#include <termios.h>
 
 extern "C"
 {
@@ -39,6 +40,8 @@ extern "C"
         {
             return static_cast<int>(cpp_core::StatusCode::Configuration::kSetStopBitsError);
         }
+
+        tcflush(context.fd, TCIOFLUSH);
 
         return static_cast<int>(cpp_core::StatusCode::kSuccess);
     }
