@@ -14,12 +14,14 @@ jobs:
       matrix:
         deno: ["2.6.0", "2.5.0"]
 
-    container:
-      image: denoland/deno:${{ matrix.deno }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ matrix.deno }}
 
       - name: Setup GCC
         uses: egor-tensin/setup-gcc@v2
@@ -56,4 +58,3 @@ jobs:
           SERIAL_TEST_PORT: /tmp/ttyCI_A
         run: |
           deno task test
-

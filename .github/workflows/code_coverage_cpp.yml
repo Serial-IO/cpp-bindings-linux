@@ -28,29 +28,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 'Install Clang and compiler-rt (profile)'
-        run: |
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-apt.gpg
-          echo "deb [signed-by=/usr/share/keyrings/llvm-apt.gpg] https://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main" | sudo tee /etc/apt/sources.list.d/llvm-21.list
-          sudo apt-get update
-          sudo apt-get install -y clang-21 libclang-rt-21-dev llvm-21
+      - name: 'Setup GCC'
+        uses: egor-tensin/setup-gcc@v2
+        with:
+          version: '16'
+          platform: 'x64'
 
       - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.31.x'
 
-      - name: 'Configure CMake (coverage preset)'
+      - name: 'Install coverage dependencies'
         run: |
-          cmake --preset coverage \
-            -DCMAKE_C_COMPILER=clang-21 \
-            -DCMAKE_CXX_COMPILER=clang++-21
+          sudo apt-get update
+          sudo apt-get install -y lcov socat
+
+      - name: 'Configure CMake (coverage)'
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=gcc-16 \
+            -DCMAKE_CXX_COMPILER=g++-16 \
+            -DCMAKE_CXX_FLAGS=--coverage \
+            -DCMAKE_EXE_LINKER_FLAGS=--coverage \
+            -DCMAKE_SHARED_LINKER_FLAGS=--coverage
 
       - name: 'Build'
-        run: cmake --build --preset coverage
-
-      - name: 'Install test dependencies'
-        run: sudo apt-get install -y socat
+        run: cmake --build build
 
       - name: 'Start virtual serial echo (socat)'
         run: |
@@ -64,21 +69,18 @@ jobs:
         env:
           LD_LIBRARY_PATH: '${{ github.workspace }}/build'
           SERIAL_TEST_PORT: '${{ env.SERIAL_TEST_PORT_IN }}'
-          LLVM_PROFILE_FILE: 'default.profraw'
         run: ./cpp_bindings_linux_tests --gtest_color=yes
 
-      - name: 'Merge profile and export lcov'
+      - name: 'Capture lcov'
         working-directory: build
         run: |
-          llvm-profdata-21 merge -o default.profdata default.profraw
-          llvm-cov-21 export -instr-profile=default.profdata \
-            ./cpp_bindings_linux_tests \
-            -object=./libcpp_bindings_linux.so \
-            -format=lcov \
-            -ignore-filename-regex='.*/GTest.*' \
-            -ignore-filename-regex='.*/googletest.*' \
-            -ignore-filename-regex='.*/cpp_core.*' \
-            > lcov.info
+          lcov --capture --directory . --output-file lcov.info
+          lcov --remove lcov.info \
+            '/usr/*' \
+            '*/_deps/*' \
+            '*/googletest/*' \
+            '*/cpp_core/*' \
+            --output-file lcov.info
 
       - name: 'Code Coverage Annotation'
         uses: ggilder/codecoverage@v1
