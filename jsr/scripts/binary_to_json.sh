@@ -19,12 +19,15 @@ BINARY_FILE_NAME=$(basename "$BINARY_FILE_PATH")
 
 mkdir -p "$(dirname "$JSON_FILE_PATH")"
 
-BASE64_DATA=$(base64 "$BINARY_FILE_PATH" | tr -d '\n')
+BASE64_TMP=$(mktemp)
+trap 'rm -f "$BASE64_TMP"' EXIT
+
+base64 "$BINARY_FILE_PATH" | tr -d '\n' > "$BASE64_TMP"
 
 jq -n \
   --arg target "$TARGET" \
   --arg filename "$BINARY_FILE_NAME" \
-  --arg data "$BASE64_DATA" \
+  --rawfile data "$BASE64_TMP" \
   '{
     target: $target,
     filename: $filename,
