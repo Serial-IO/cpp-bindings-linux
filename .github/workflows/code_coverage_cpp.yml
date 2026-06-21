@@ -74,7 +74,8 @@ jobs:
       - name: 'Capture lcov'
         working-directory: build
         run: |
-          lcov --capture --directory . --output-file lcov.info
+          GCOV_TOOL="$(command -v gcov-16)"
+          lcov --capture --gcov-tool "$GCOV_TOOL" --directory . --output-file lcov.info
           lcov --remove lcov.info \
             '/usr/*' \
             '*/_deps/*' \
