@@ -11,11 +11,12 @@ extern "C"
 
     MODULE_API auto serialSetFlowControl(int64_t handle, int mode, ErrorCallbackT error_callback) -> int
     {
-        cpp_bindings_linux::detail::HandleContext context;
-        const auto rc = cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &context);
-        if (rc < 0)
+        cpp_bindings_linux::detail::HandleContext handle_context;
+        const auto status =
+            cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &handle_context);
+        if (status < 0)
         {
-            return rc;
+            return status;
         }
 
         const auto flow_control = cpp_bindings_linux::detail::parseFlowControl(
@@ -26,22 +27,23 @@ extern "C"
             return static_cast<int>(cpp_core::StatusCode::Configuration::kSetFlowControlError);
         }
 
-        termios2 tty{};
-        if (cpp_bindings_linux::detail::readTermios2<int>(context.fd, &tty, error_callback) < 0)
+        termios2 serial_settings{};
+        if (cpp_bindings_linux::detail::readTermios2<int>(
+                handle_context.file_descriptor, &serial_settings, error_callback) < 0)
         {
             return static_cast<int>(cpp_core::StatusCode::Control::kGetStateError);
         }
 
-        cpp_bindings_linux::detail::applyFlowControl(&tty, *flow_control);
+        cpp_bindings_linux::detail::applyFlowControl(&serial_settings, *flow_control);
 
         if (cpp_bindings_linux::detail::writeTermios2<int>(
-                context.fd, &tty, error_callback,
+                handle_context.file_descriptor, &serial_settings, error_callback,
                 cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Configuration::kSetFlowControlError)) < 0)
         {
             return static_cast<int>(cpp_core::StatusCode::Configuration::kSetFlowControlError);
         }
 
-        tcflush(context.fd, TCIOFLUSH);
+        tcflush(handle_context.file_descriptor, TCIOFLUSH);
 
         return static_cast<int>(cpp_core::StatusCode::kSuccess);
     }

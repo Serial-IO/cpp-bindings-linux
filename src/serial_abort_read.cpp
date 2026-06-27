@@ -7,14 +7,15 @@ extern "C"
 
     MODULE_API auto serialAbortRead(int64_t handle, ErrorCallbackT error_callback) -> int
     {
-        cpp_bindings_linux::detail::HandleContext context;
-        const auto rc = cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &context);
-        if (rc < 0)
+        cpp_bindings_linux::detail::HandleContext handle_context;
+        const auto status =
+            cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &handle_context);
+        if (status < 0)
         {
-            return rc;
+            return status;
         }
 
-        cpp_bindings_linux::detail::setAbortFlag(context.state, cpp_bindings_linux::detail::Operation::kRead);
+        cpp_bindings_linux::detail::setAbortFlag(handle_context.state, cpp_bindings_linux::detail::Operation::kRead);
         return static_cast<int>(cpp_core::StatusCode::kSuccess);
     }
 

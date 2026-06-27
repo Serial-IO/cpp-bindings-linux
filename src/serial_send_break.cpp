@@ -10,11 +10,12 @@ extern "C"
 
     MODULE_API auto serialSendBreak(int64_t handle, int duration_ms, ErrorCallbackT error_callback) -> int
     {
-        cpp_bindings_linux::detail::HandleContext context;
-        const auto rc = cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &context);
-        if (rc < 0)
+        cpp_bindings_linux::detail::HandleContext handle_context;
+        const auto status =
+            cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &handle_context);
+        if (status < 0)
         {
-            return rc;
+            return status;
         }
 
         if (duration_ms <= 0)
@@ -24,7 +25,7 @@ extern "C"
                 "Break duration must be > 0");
         }
 
-        if (ioctl(context.fd, TIOCSBRK) != 0)
+        if (ioctl(handle_context.file_descriptor, TIOCSBRK) != 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(
                 error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Control::kSendBreakError));
@@ -32,7 +33,7 @@ extern "C"
 
         usleep(static_cast<useconds_t>(duration_ms) * 1000U);
 
-        if (ioctl(context.fd, TIOCCBRK) != 0)
+        if (ioctl(handle_context.file_descriptor, TIOCCBRK) != 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(
                 error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Control::kSendBreakError));

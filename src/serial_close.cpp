@@ -22,14 +22,14 @@ extern "C"
                 "Invalid handle");
         }
 
-        const int fd = static_cast<int>(handle);
-        if (close(fd) != 0)
+        const int file_descriptor = static_cast<int>(handle);
+        if (close(file_descriptor) != 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(
                 error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Connection::kCloseHandleError));
         }
 
-        cpp_bindings_linux::detail::removeHandleState(fd);
+        cpp_bindings_linux::detail::removeHandleState(file_descriptor);
         return static_cast<int>(cpp_core::StatusCode::kSuccess);
     }
 

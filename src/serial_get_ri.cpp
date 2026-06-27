@@ -9,22 +9,23 @@ extern "C"
 
     MODULE_API auto serialGetRi(int64_t handle, ErrorCallbackT error_callback) -> int
     {
-        cpp_bindings_linux::detail::HandleContext context;
-        const auto rc = cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &context);
-        if (rc < 0)
+        cpp_bindings_linux::detail::HandleContext handle_context;
+        const auto status =
+            cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &handle_context);
+        if (status < 0)
         {
-            return rc;
+            return status;
         }
 
-        int status = 0;
-        if (ioctl(context.fd, TIOCMGET, &status) != 0)
+        int modem_status = 0;
+        if (ioctl(handle_context.file_descriptor, TIOCMGET, &modem_status) != 0)
         {
             return cpp_bindings_linux::detail::failErrno<int>(
                 error_callback,
                 cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Control::kGetModemStatusError));
         }
 
-        return (status & TIOCM_RNG) != 0 ? 1 : 0;
+        return (modem_status & TIOCM_RNG) != 0 ? 1 : 0;
     }
 
 } // extern "C"

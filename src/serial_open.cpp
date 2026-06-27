@@ -43,25 +43,25 @@ extern "C"
                 error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Connection::kNotFoundError));
         }
 
-        termios2 tty{};
-        if (cpp_bindings_linux::detail::readTermios2<int>(handle.get(), &tty, error_callback) < 0)
+        termios2 serial_settings{};
+        if (cpp_bindings_linux::detail::readTermios2<int>(handle.get(), &serial_settings, error_callback) < 0)
         {
             return static_cast<intptr_t>(cpp_core::StatusCode::Control::kGetStateError);
         }
 
-        cpp_bindings_linux::detail::applyBaudrate(&tty, baudrate);
-        cpp_bindings_linux::detail::applyDataBits(&tty, data_bits);
-        cpp_bindings_linux::detail::applyParity(&tty, *parity_value);
-        cpp_bindings_linux::detail::applyStopBits(&tty, *stop_bits_value);
+        cpp_bindings_linux::detail::applyBaudrate(&serial_settings, baudrate);
+        cpp_bindings_linux::detail::applyDataBits(&serial_settings, data_bits);
+        cpp_bindings_linux::detail::applyParity(&serial_settings, *parity_value);
+        cpp_bindings_linux::detail::applyStopBits(&serial_settings, *stop_bits_value);
 
-        tty.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-        tty.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR | IGNCR | ICRNL);
-        tty.c_oflag &= ~OPOST;
-        tty.c_cc[VMIN] = 0;
-        tty.c_cc[VTIME] = 0;
+        serial_settings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+        serial_settings.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR | IGNCR | ICRNL);
+        serial_settings.c_oflag &= ~OPOST;
+        serial_settings.c_cc[VMIN] = 0;
+        serial_settings.c_cc[VTIME] = 0;
 
         if (cpp_bindings_linux::detail::writeTermios2<int>(
-                handle.get(), &tty, error_callback,
+                handle.get(), &serial_settings, error_callback,
                 cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Control::kSetStateError)) < 0)
         {
             return static_cast<intptr_t>(cpp_core::StatusCode::Control::kSetStateError);

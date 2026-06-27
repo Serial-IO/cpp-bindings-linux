@@ -11,11 +11,12 @@ extern "C"
 
     MODULE_API auto serialSetDataBits(int64_t handle, int data_bits, ErrorCallbackT error_callback) -> int
     {
-        cpp_bindings_linux::detail::HandleContext context;
-        const auto rc = cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &context);
-        if (rc < 0)
+        cpp_bindings_linux::detail::HandleContext handle_context;
+        const auto status =
+            cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &handle_context);
+        if (status < 0)
         {
-            return rc;
+            return status;
         }
 
         if (!cpp_bindings_linux::detail::validateDataBitsValue(data_bits))
@@ -24,22 +25,23 @@ extern "C"
                 error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Configuration::kSetDataBitsError));
         }
 
-        termios2 tty{};
-        if (cpp_bindings_linux::detail::readTermios2<int>(context.fd, &tty, error_callback) < 0)
+        termios2 serial_settings{};
+        if (cpp_bindings_linux::detail::readTermios2<int>(
+                handle_context.file_descriptor, &serial_settings, error_callback) < 0)
         {
             return static_cast<int>(cpp_core::StatusCode::Control::kGetStateError);
         }
 
-        cpp_bindings_linux::detail::applyDataBits(&tty, data_bits);
+        cpp_bindings_linux::detail::applyDataBits(&serial_settings, data_bits);
 
         if (cpp_bindings_linux::detail::writeTermios2<int>(
-                context.fd, &tty, error_callback,
+                handle_context.file_descriptor, &serial_settings, error_callback,
                 cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Configuration::kSetDataBitsError)) < 0)
         {
             return static_cast<int>(cpp_core::StatusCode::Configuration::kSetDataBitsError);
         }
 
-        tcflush(context.fd, TCIOFLUSH);
+        tcflush(handle_context.file_descriptor, TCIOFLUSH);
 
         return static_cast<int>(cpp_core::StatusCode::kSuccess);
     }

@@ -7,14 +7,15 @@ extern "C"
 
     MODULE_API auto serialOutBytesTotal(int64_t handle, ErrorCallbackT error_callback) -> int64_t
     {
-        cpp_bindings_linux::detail::HandleContext context;
-        const auto rc = cpp_bindings_linux::detail::acquireHandleContext<int64_t>(handle, error_callback, &context);
-        if (rc < 0)
+        cpp_bindings_linux::detail::HandleContext handle_context;
+        const auto status =
+            cpp_bindings_linux::detail::acquireHandleContext<int64_t>(handle, error_callback, &handle_context);
+        if (status < 0)
         {
-            return rc;
+            return status;
         }
 
-        return cpp_bindings_linux::detail::bytesWrittenTotal(context.state);
+        return cpp_bindings_linux::detail::bytesWrittenTotal(handle_context.state);
     }
 
 } // extern "C"
