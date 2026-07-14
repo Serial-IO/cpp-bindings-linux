@@ -7,8 +7,8 @@
 
 namespace cpp_bindings_linux::detail
 {
-template <typename Ret> inline auto failErrno(ErrorCallbackT error_callback, StatusCodeValue code) -> Ret
+template <typename ReturnType> inline auto failErrno(ErrorCallbackT error_callback, StatusCodeValue code) -> ReturnType
 {
-    return failMsg<Ret>(error_callback, code, std::error_code(errno, std::generic_category()).message());
+    return failMsg<ReturnType>(error_callback, code, std::error_code(errno, std::generic_category()).message());
 }
 } // namespace cpp_bindings_linux::detail

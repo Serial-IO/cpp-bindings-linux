@@ -5,12 +5,12 @@
 
 namespace cpp_bindings_linux::detail
 {
-template <typename Ret>
+template <typename ReturnType>
 inline auto acquireHandleContext(int64_t handle, ErrorCallbackT error_callback, HandleContext *out_handle_context)
-    -> Ret
+    -> ReturnType
 {
     int file_descriptor = -1;
-    const auto validation_status = validatePosixFileDescriptor<Ret>(handle, error_callback, &file_descriptor);
+    const auto validation_status = validatePosixFileDescriptor<ReturnType>(handle, error_callback, &file_descriptor);
     if (validation_status < 0)
     {
         return validation_status;
@@ -18,6 +18,6 @@ inline auto acquireHandleContext(int64_t handle, ErrorCallbackT error_callback, 
 
     out_handle_context->file_descriptor = file_descriptor;
     out_handle_context->state = ensureHandleState(file_descriptor);
-    return static_cast<Ret>(StatusCode::kSuccess);
+    return static_cast<ReturnType>(StatusCode::kSuccess);
 }
 } // namespace cpp_bindings_linux::detail

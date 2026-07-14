@@ -8,9 +8,9 @@
 
 namespace cpp_bindings_linux::detail
 {
-template <typename Ret>
-inline auto failMsg(ErrorCallbackT error_callback, StatusCodeValue code, std::string_view message) -> Ret
+template <typename ReturnType>
+inline auto failMsg(ErrorCallbackT error_callback, StatusCodeValue code, std::string_view message) -> ReturnType
 {
-    return cpp_core::failMsg<Ret>(effectiveErrorCallback(error_callback), code, message);
+    return cpp_core::failMsg<ReturnType>(effectiveErrorCallback(error_callback), code, message);
 }
 } // namespace cpp_bindings_linux::detail

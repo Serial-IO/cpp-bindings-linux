@@ -7,15 +7,15 @@
 
 namespace cpp_bindings_linux::detail
 {
-template <typename Ret>
+template <typename ReturnType>
 inline auto writeTermios2(int file_descriptor, termios2 *serial_settings, ErrorCallbackT error_callback,
-                          StatusCodeValue set_error_code) -> Ret
+                          StatusCodeValue set_error_code) -> ReturnType
 {
     if (ioctl(file_descriptor, TCSETS2, serial_settings) != 0)
     {
-        return failErrno<Ret>(error_callback, set_error_code);
+        return failErrno<ReturnType>(error_callback, set_error_code);
     }
 
-    return static_cast<Ret>(StatusCode::kSuccess);
+    return static_cast<ReturnType>(StatusCode::kSuccess);
 }
 } // namespace cpp_bindings_linux::detail

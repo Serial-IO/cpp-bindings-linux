@@ -7,7 +7,7 @@ namespace cpp_bindings_linux::detail
 {
 inline auto trimWhitespace(std::string value) -> std::string
 {
-    const auto is_space = [](unsigned char character) { return std::isspace(character) != 0; };
+    const auto is_space = [](unsigned char character) -> bool { return std::isspace(character) != 0; };
     while (!value.empty() && is_space(static_cast<unsigned char>(value.front())))
     {
         value.erase(value.begin());

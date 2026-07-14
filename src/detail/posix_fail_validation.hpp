@@ -5,8 +5,8 @@
 
 namespace cpp_bindings_linux::detail
 {
-template <typename Ret> inline auto failValidation(ErrorCallbackT error_callback, StatusCodeValue code) -> Ret
+template <typename ReturnType> inline auto failValidation(ErrorCallbackT error_callback, StatusCodeValue code) -> ReturnType
 {
-    return failMsg<Ret>(error_callback, code, defaultValidationMessage(code));
+    return failMsg<ReturnType>(error_callback, code, defaultValidationMessage(code));
 }
 } // namespace cpp_bindings_linux::detail
