@@ -1,6 +1,6 @@
 #include <cpp_core/interface/serial_set_error_callback.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_common_types.hpp"
 
 extern "C"
 {

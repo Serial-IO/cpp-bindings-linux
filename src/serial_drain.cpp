@@ -1,6 +1,8 @@
 #include <cpp_core/interface/serial_drain.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_acquire_handle_context.hpp"
+#include "detail/posix_fail_errno.hpp"
+#include "detail/posix_status_value.hpp"
 
 #include <termios.h>
 

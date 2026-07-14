@@ -1,6 +1,9 @@
 #include <cpp_core/interface/serial_close.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_fail_errno.hpp"
+#include "detail/posix_fail_msg.hpp"
+#include "detail/posix_remove_handle_state.hpp"
+#include "detail/posix_status_value.hpp"
 
 #include <limits>
 #include <unistd.h>

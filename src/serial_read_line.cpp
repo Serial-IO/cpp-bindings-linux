@@ -1,6 +1,6 @@
 #include <cpp_core/interface/serial_read_line.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_read_impl.hpp"
 
 extern "C"
 {

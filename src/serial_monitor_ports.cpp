@@ -1,6 +1,8 @@
 #include <cpp_core/interface/serial_monitor_ports.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_fail_errno.hpp"
+#include "detail/posix_is_serial_device_name.hpp"
+#include "detail/posix_status_value.hpp"
 
 #include <atomic>
 #include <cstring>

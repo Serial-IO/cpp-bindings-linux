@@ -1,6 +1,7 @@
 #include <cpp_core/interface/serial_in_bytes_total.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_acquire_handle_context.hpp"
+#include "detail/posix_bytes_read_total.hpp"
 
 extern "C"
 {

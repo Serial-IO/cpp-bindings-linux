@@ -1,6 +1,6 @@
 #include <cpp_core/interface/serial_write.h>
 
-#include "detail/posix_helpers.hpp"
+#include "detail/posix_write_impl.hpp"
 
 extern "C"
 {
