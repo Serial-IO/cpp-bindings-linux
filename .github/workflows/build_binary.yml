@@ -30,6 +30,13 @@ jobs:
           version: '16'
           platform: 'x64'
 
+      - name: 'Setup Clang for FFI metadata'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: '22.1.0'
+          force-url: 'https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.0/LLVM-22.1.0-Linux-X64.tar.xz'
+          env: false
+
       - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
         with:
@@ -39,7 +46,8 @@ jobs:
         run: |
           cmake --preset linux-gcc-release \
             -DCMAKE_C_COMPILER=gcc-16 \
-            -DCMAKE_CXX_COMPILER=g++-16
+            -DCMAKE_CXX_COMPILER=g++-16 \
+            -DCPP_CORE_AST_CLANGXX="${LLVM_PATH}/bin/clang++"
 
       - name: 'Build'
         run: |
