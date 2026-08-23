@@ -18,10 +18,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Deno
-        run: |
-          curl -fsSL https://deno.land/install.sh | sh -s -- v${{ matrix.deno }}
-          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v${{ matrix.deno }}
 
       - name: Setup GCC
         uses: egor-tensin/setup-gcc@v2
