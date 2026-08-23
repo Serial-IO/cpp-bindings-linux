@@ -6,19 +6,14 @@
 
 namespace cpp_bindings_linux::detail
 {
-inline auto parseStopBits(int stop_bits, ErrorCallbackT error_callback, StatusCodeValue invalid_code,
-                          bool allow_one_alias = true) -> std::optional<StopBits>
+inline auto parseStopBits(int stop_bits, ErrorCallbackT error_callback, StatusCodeValue invalid_code)
+    -> std::optional<StopBits>
 {
     switch (stop_bits)
     {
     case 0:
-        return StopBits::kOne;
     case 1:
-        if (allow_one_alias)
-        {
-            return StopBits::kOne;
-        }
-        break;
+        return StopBits::kOne;
     case 2:
         return StopBits::kTwo;
     default:
