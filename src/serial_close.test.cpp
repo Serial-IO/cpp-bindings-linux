@@ -1,11 +1,18 @@
 #include <cpp_core/interface/serial_close.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/status_code.h>
 
 #include <limits>
 
 #include <gtest/gtest.h>
 
 #include "test_helpers/error_capture.hpp"
+
+namespace
+{
+constexpr auto kSuccess = static_cast<int>(cpp_core::StatusCode::kSuccess);
+constexpr auto kInvalidHandleError = static_cast<int>(cpp_core::StatusCode::Connection::kInvalidHandleError);
+constexpr auto kCloseHandleError = static_cast<int>(cpp_core::StatusCode::Connection::kCloseHandleError);
+} // namespace
 
 class SerialCloseTest : public ::testing::Test
 {
@@ -29,21 +36,21 @@ TEST_F(SerialCloseTest, CloseInvalidHandleZero)
 {
     int result = serialClose(0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kSuccess));
+    EXPECT_EQ(result, kSuccess);
 }
 
 TEST_F(SerialCloseTest, CloseInvalidHandleNegative)
 {
     int result = serialClose(-1, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kSuccess));
+    EXPECT_EQ(result, kSuccess);
 }
 
 TEST_F(SerialCloseTest, CloseInvalidHandleNegativeLarge)
 {
     int result = serialClose(-12345, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kSuccess));
+    EXPECT_EQ(result, kSuccess);
 }
 
 TEST_F(SerialCloseTest, CloseInvalidHandleTooLarge)
@@ -51,7 +58,7 @@ TEST_F(SerialCloseTest, CloseInvalidHandleTooLarge)
     auto too_large_handle = static_cast<int64_t>(std::numeric_limits<int>::max()) + 1;
     int result = serialClose(too_large_handle, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
+    EXPECT_EQ(result, kInvalidHandleError);
 }
 
 TEST_F(SerialCloseTest, CloseInvalidHandleIntMaxBoundary)
@@ -59,23 +66,19 @@ TEST_F(SerialCloseTest, CloseInvalidHandleIntMaxBoundary)
     auto handle = static_cast<int64_t>(std::numeric_limits<int>::max());
     int result = serialClose(handle, error_callback);
 
-    // Should fail because this fd doesn't exist, but not with InvalidHandleError
-    EXPECT_NE(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
+    EXPECT_NE(result, kInvalidHandleError);
 }
 
 TEST_F(SerialCloseTest, CloseNoErrorCallback)
 {
     int result = serialClose(0, nullptr);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kSuccess));
+    EXPECT_EQ(result, kSuccess);
 }
 
 TEST_F(SerialCloseTest, CloseInvalidHandle)
 {
-    // Test closing a real invalid fd (one that never existed)
-    // We should get an error but not crash
     int result = serialClose(9999, error_callback);
 
-    // This will fail because the fd doesn't exist
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kCloseHandleError));
+    EXPECT_EQ(result, kCloseHandleError);
 }

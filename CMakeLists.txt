@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
 
-# Export compile commands to root directory
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/CPM.cmake)
@@ -11,9 +10,7 @@ CPMAddPackage(
     GIT_TAG v1.1.0
 )
 
-# Include cmake-git-versioning module
 include(${cmake_git_versioning_SOURCE_DIR}/cmake/cmake-git-versioning.cmake)
-
 get_git_version_info()
 
 project(
@@ -23,29 +20,27 @@ project(
     LANGUAGES CXX
 )
 
-file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "PACKAGE_VERSION=${GIT_DESCRIBE_NO_V}")
+include(CTest)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 23)
+file(WRITE "${CMAKE_BINARY_DIR}/env.sh" "PACKAGE_VERSION=${GIT_DESCRIBE_NO_V}")
+generate_git_version(
+    OUTPUT_DIR ${CMAKE_BINARY_DIR}/generated
+    OUTPUT_FILE version.hpp
+)
+
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Enable C++23 module support
-set(CMAKE_CXX_MODULE_STD 23)
+set(CMAKE_CXX_MODULE_STD 26)
 set(CMAKE_CXX_MODULE_EXTENSIONS OFF)
 
 CPMAddPackage(
     NAME cpp_core
     GITHUB_REPOSITORY Serial-IO/cpp-core
-    GIT_TAG main
+    GIT_TAG v2.0.0
     OPTIONS
     "CMAKE_EXPORT_COMPILE_COMMANDS OFF"
-)
-
-# Generate version information
-generate_git_version(
-    OUTPUT_DIR ${CMAKE_BINARY_DIR}/generated
-    OUTPUT_FILE version.hpp
+    "CPP_CORE_ENABLE_AST_EXPORT ON"
 )
 
 CPMAddPackage(
@@ -57,7 +52,6 @@ CPMAddPackage(
     "gtest_force_shared_crt ON"
 )
 
-# Library sources: src/*.cpp only, exclude *.test.cpp and test_helpers/
 file(GLOB_RECURSE LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER LIB_SOURCES EXCLUDE REGEX ".*\\.test\\.cpp$")
 list(FILTER LIB_SOURCES EXCLUDE REGEX ".*/test_helpers/.*")
@@ -86,9 +80,8 @@ target_link_libraries(
     cpp_core::cpp_core
 )
 
-target_compile_features(cpp_bindings_linux PUBLIC cxx_std_23)
+target_compile_features(cpp_bindings_linux PUBLIC cxx_std_26)
 
-# Test sources: src/*.test.cpp, tests/*.test.cpp, src/test_helpers/*.cpp (helpers excluded from lib)
 file(GLOB SRC_UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
 file(GLOB TESTS_INTEGRATION "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.test.cpp")
 file(GLOB TEST_HELPER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/test_helpers/*.cpp")
@@ -114,7 +107,10 @@ if(TEST_SOURCES)
         GTest::gmock
     )
 
-    target_compile_features(cpp_bindings_linux_tests PRIVATE cxx_std_23)
+    target_compile_features(cpp_bindings_linux_tests PRIVATE cxx_std_26)
+
+    include(GoogleTest)
+    gtest_discover_tests(cpp_bindings_linux_tests)
 endif()
 
 include(GNUInstallDirs)
@@ -133,7 +129,6 @@ install(
     FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
 
-# Copy generated version header
 install(
     FILES ${CMAKE_BINARY_DIR}/generated/version.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

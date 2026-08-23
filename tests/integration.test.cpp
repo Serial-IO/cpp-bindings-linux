@@ -2,7 +2,7 @@
 #include <cpp_core/interface/serial_open.h>
 #include <cpp_core/interface/serial_read.h>
 #include <cpp_core/interface/serial_write.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/status_code.h>
 
 #include <array>
 #include <cstring>
@@ -13,6 +13,11 @@
 #include <gtest/gtest.h>
 
 #include "test_helpers/error_capture.hpp"
+
+namespace
+{
+constexpr auto kSuccess = static_cast<int>(cpp_core::StatusCode::kSuccess);
+} // namespace
 
 class SerialIntegrationTest : public ::testing::Test
 {
@@ -37,7 +42,6 @@ TEST_F(SerialIntegrationTest, ReadWritePipeRoundTrip)
     std::array<int, 2> pipefd{};
     ASSERT_EQ(pipe(pipefd.data()), 0);
 
-    // Set non-blocking
     fcntl(pipefd[0], F_SETFL, O_NONBLOCK);
     fcntl(pipefd[1], F_SETFL, O_NONBLOCK);
 
@@ -93,6 +97,6 @@ TEST_F(SerialIntegrationTest, CloseAfterOperations)
     int close_result1 = serialClose(pipefd[0], error_callback);
     int close_result2 = serialClose(pipefd[1], error_callback);
 
-    EXPECT_EQ(close_result1, static_cast<int>(cpp_core::StatusCodes::kSuccess));
-    EXPECT_EQ(close_result2, static_cast<int>(cpp_core::StatusCodes::kSuccess));
+    EXPECT_EQ(close_result1, kSuccess);
+    EXPECT_EQ(close_result2, kSuccess);
 }

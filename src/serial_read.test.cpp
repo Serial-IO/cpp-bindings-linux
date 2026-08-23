@@ -1,5 +1,5 @@
 #include <cpp_core/interface/serial_read.h>
-#include <cpp_core/status_codes.h>
+#include <cpp_core/status_code.h>
 
 #include <array>
 #include <fcntl.h>
@@ -9,6 +9,12 @@
 #include <gtest/gtest.h>
 
 #include "test_helpers/error_capture.hpp"
+
+namespace
+{
+constexpr auto kBufferError = static_cast<int>(cpp_core::StatusCode::Io::kBufferError);
+constexpr auto kInvalidHandleError = static_cast<int>(cpp_core::StatusCode::Connection::kInvalidHandleError);
+} // namespace
 
 class SerialReadTest : public ::testing::Test
 {
@@ -32,7 +38,7 @@ TEST_F(SerialReadTest, ReadNullBuffer)
 {
     int result = serialRead(1, nullptr, 10, 100, 0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kBufferError));
+    EXPECT_EQ(result, kBufferError);
     EXPECT_NE(error_capture.last_message.find("buffer"), std::string::npos);
 }
 
@@ -41,7 +47,7 @@ TEST_F(SerialReadTest, ReadZeroBufferSize)
     std::array<char, 10> buffer{};
     int result = serialRead(1, buffer.data(), 0, 100, 0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kBufferError));
+    EXPECT_EQ(result, kBufferError);
 }
 
 TEST_F(SerialReadTest, ReadNegativeBufferSize)
@@ -49,7 +55,7 @@ TEST_F(SerialReadTest, ReadNegativeBufferSize)
     std::array<char, 10> buffer{};
     int result = serialRead(1, buffer.data(), -1, 100, 0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kBufferError));
+    EXPECT_EQ(result, kBufferError);
 }
 
 TEST_F(SerialReadTest, ReadInvalidHandleZero)
@@ -57,7 +63,7 @@ TEST_F(SerialReadTest, ReadInvalidHandleZero)
     std::array<char, 10> buffer{};
     int result = serialRead(0, buffer.data(), static_cast<int>(buffer.size()), 100, 0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
+    EXPECT_EQ(result, kInvalidHandleError);
 }
 
 TEST_F(SerialReadTest, ReadInvalidHandleNegative)
@@ -65,7 +71,7 @@ TEST_F(SerialReadTest, ReadInvalidHandleNegative)
     std::array<char, 10> buffer{};
     int result = serialRead(-1, buffer.data(), static_cast<int>(buffer.size()), 100, 0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
+    EXPECT_EQ(result, kInvalidHandleError);
 }
 
 TEST_F(SerialReadTest, ReadInvalidHandleTooLarge)
@@ -74,7 +80,7 @@ TEST_F(SerialReadTest, ReadInvalidHandleTooLarge)
     auto too_large = static_cast<int64_t>(std::numeric_limits<int>::max()) + 1;
     int result = serialRead(too_large, buffer.data(), static_cast<int>(buffer.size()), 100, 0, error_callback);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
+    EXPECT_EQ(result, kInvalidHandleError);
 }
 
 TEST_F(SerialReadTest, ReadFromDevNull)
@@ -106,7 +112,7 @@ TEST_F(SerialReadTest, ReadNoErrorCallback)
     std::array<char, 10> buffer{};
     int result = serialRead(0, buffer.data(), static_cast<int>(buffer.size()), 100, 0, nullptr);
 
-    EXPECT_EQ(result, static_cast<int>(cpp_core::StatusCodes::kInvalidHandleError));
+    EXPECT_EQ(result, kInvalidHandleError);
 }
 
 TEST_F(SerialReadTest, ReadWithVariousTimeouts)
@@ -116,7 +122,6 @@ TEST_F(SerialReadTest, ReadWithVariousTimeouts)
 
     std::array<char, 10> buffer{};
 
-    // Test various timeout values
     for (int timeout : {0, 1, 10, 100, 1000})
     {
         int result = serialRead(fd, buffer.data(), static_cast<int>(buffer.size()), timeout, 0, error_callback);

@@ -1,0 +1,21 @@
+#pragma once
+
+#include "fail_errno.hpp"
+#include "termios2.hpp"
+
+#include <sys/ioctl.h>
+
+namespace cpp_bindings_linux::detail
+{
+template <typename ReturnType>
+inline auto writeTermios2(int file_descriptor, termios2 *serial_settings, ErrorCallbackT error_callback,
+                          StatusCodeValue set_error_code) -> ReturnType
+{
+    if (ioctl(file_descriptor, TCSETS2, serial_settings) != 0)
+    {
+        return failErrno<ReturnType>(error_callback, set_error_code);
+    }
+
+    return static_cast<ReturnType>(StatusCode::kSuccess);
+}
+} // namespace cpp_bindings_linux::detail
