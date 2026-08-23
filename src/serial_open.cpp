@@ -1,20 +1,20 @@
 #include <cpp_core/interface/serial_open.h>
 #include <cpp_core/validation.hpp>
 
-#include "detail/posix_apply_baudrate.hpp"
-#include "detail/posix_apply_data_bits.hpp"
-#include "detail/posix_apply_parity.hpp"
-#include "detail/posix_apply_stop_bits.hpp"
-#include "detail/posix_effective_error_callback.hpp"
-#include "detail/posix_fail_errno.hpp"
-#include "detail/posix_handle_types.hpp"
-#include "detail/posix_parse_parity.hpp"
-#include "detail/posix_parse_stop_bits.hpp"
-#include "detail/posix_read_termios2.hpp"
-#include "detail/posix_register_opened_handle.hpp"
-#include "detail/posix_status_value.hpp"
-#include "detail/posix_write_termios2.hpp"
-#include "detail/posix_termios2.hpp"
+#include "detail/apply_baudrate.hpp"
+#include "detail/apply_data_bits.hpp"
+#include "detail/apply_parity.hpp"
+#include "detail/apply_stop_bits.hpp"
+#include "detail/effective_error_callback.hpp"
+#include "detail/fail_errno.hpp"
+#include "detail/handle_types.hpp"
+#include "detail/parse_parity.hpp"
+#include "detail/parse_stop_bits.hpp"
+#include "detail/read_termios2.hpp"
+#include "detail/register_opened_handle.hpp"
+#include "detail/status_value.hpp"
+#include "detail/write_termios2.hpp"
+#include "detail/termios2.hpp"
 
 #include <fcntl.h>
 #include <sys/ioctl.h>

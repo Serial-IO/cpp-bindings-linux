@@ -1,6 +1,6 @@
 #include <cpp_core/interface/serial_set_write_callback.h>
 
-#include "detail/posix_handle_types.hpp"
+#include "detail/handle_types.hpp"
 
 extern "C"
 {

@@ -1,8 +1,8 @@
 #include <cpp_core/interface/serial_read_until.h>
 
-#include "detail/posix_fail_msg.hpp"
-#include "detail/posix_read_impl.hpp"
-#include "detail/posix_status_value.hpp"
+#include "detail/fail_msg.hpp"
+#include "detail/read_impl.hpp"
+#include "detail/status_value.hpp"
 
 extern "C"
 {

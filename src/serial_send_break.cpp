@@ -1,9 +1,9 @@
 #include <cpp_core/interface/serial_send_break.h>
 
-#include "detail/posix_acquire_handle_context.hpp"
-#include "detail/posix_fail_errno.hpp"
-#include "detail/posix_fail_msg.hpp"
-#include "detail/posix_status_value.hpp"
+#include "detail/acquire_handle_context.hpp"
+#include "detail/fail_errno.hpp"
+#include "detail/fail_msg.hpp"
+#include "detail/status_value.hpp"
 
 #include <sys/ioctl.h>
 #include <unistd.h>

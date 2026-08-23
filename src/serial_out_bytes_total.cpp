@@ -1,7 +1,7 @@
 #include <cpp_core/interface/serial_out_bytes_total.h>
 
-#include "detail/posix_acquire_handle_context.hpp"
-#include "detail/posix_bytes_written_total.hpp"
+#include "detail/acquire_handle_context.hpp"
+#include "detail/bytes_written_total.hpp"
 
 extern "C"
 {

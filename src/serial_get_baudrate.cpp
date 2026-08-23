@@ -1,9 +1,9 @@
 #include <cpp_core/interface/serial_get_baudrate.h>
 
-#include "detail/posix_acquire_handle_context.hpp"
-#include "detail/posix_fail_errno.hpp"
-#include "detail/posix_status_value.hpp"
-#include "detail/posix_termios2.hpp"
+#include "detail/acquire_handle_context.hpp"
+#include "detail/fail_errno.hpp"
+#include "detail/status_value.hpp"
+#include "detail/termios2.hpp"
 
 #include <sys/ioctl.h>
 

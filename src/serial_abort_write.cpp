@@ -1,7 +1,7 @@
 #include <cpp_core/interface/serial_abort_write.h>
 
-#include "detail/posix_acquire_handle_context.hpp"
-#include "detail/posix_set_abort_flag.hpp"
+#include "detail/acquire_handle_context.hpp"
+#include "detail/set_abort_flag.hpp"
 
 extern "C"
 {

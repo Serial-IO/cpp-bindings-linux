@@ -1,9 +1,9 @@
 #include <cpp_core/interface/serial_list_ports.h>
 
-#include "detail/posix_fail_msg.hpp"
-#include "detail/posix_is_serial_device_name.hpp"
-#include "detail/posix_read_trimmed_file.hpp"
-#include "detail/posix_status_value.hpp"
+#include "detail/fail_msg.hpp"
+#include "detail/is_serial_device_name.hpp"
+#include "detail/read_trimmed_file.hpp"
+#include "detail/status_value.hpp"
 
 #include <array>
 #include <filesystem>
