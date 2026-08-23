@@ -12,12 +12,12 @@
       "LICENSE",
       "jsr.json",
       "src/**",
-      "bin/**"
+      "bin/**",
+      "ffi/**"
     ],
     "exclude": [
-      "!bin/"
+      "!bin/",
+      "!ffi/"
     ]
   }
 }
-
-

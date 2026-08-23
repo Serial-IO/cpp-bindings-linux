@@ -49,7 +49,9 @@ jobs:
       - name: 'Prepare files for JSR'
         run: |
           mkdir -p ./jsr/bin
+          mkdir -p ./jsr/ffi
           cp ./artifacts/libcpp_bindings_linux.so ./jsr/bin/x86_64.so
+          cp ./artifacts/ast/cpp_core_ffi_api.json ./jsr/ffi/cpp_core_ffi_api.json
 
           ./jsr/scripts/binary_to_json.sh \
             ./artifacts/libcpp_bindings_linux.so \
@@ -71,4 +73,3 @@ jobs:
         working-directory: jsr
         run: |
           deno publish --allow-dirty --dry-run
-

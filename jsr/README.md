@@ -5,6 +5,11 @@
 
 Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 string inside the JSON file.
 
+The package also includes the generated cpp-core FFI API metadata at
+`ffi/cpp_core_ffi_api.json`. It describes the exported C symbols, parameter and
+return types, callbacks, default values, and API documentation used by downstream
+FFI adapter generators.
+
 This package is primarily intended as a dependency for [`@serial/serial`](https://jsr.io/@serial/serial). However, it can also be used independently.
 
 

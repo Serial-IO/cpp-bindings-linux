@@ -43,7 +43,8 @@ jobs:
 
       - name: 'Build'
         run: |
-          cmake --build --preset linux-gcc-release --target cpp_bindings_linux
+          cmake --build --preset linux-gcc-release \
+            --target cpp_bindings_linux cpp_core_ast_slim_json
       
       - name: 'Set PACKAGE_VERSION from env.bat'
         id: version
@@ -70,7 +71,9 @@ jobs:
         with:
           if-no-files-found: error
           name: libcpp_bindings_linux
-          path: build/libcpp_bindings_linux.so
+          path: |
+            build/libcpp_bindings_linux.so
+            build/ast/cpp_core_ffi_api.json
 
       - name: 'Create GitHub Release'
         if: github.ref_type == 'tag' && steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION == 'true'
