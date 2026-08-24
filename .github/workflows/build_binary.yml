@@ -54,7 +54,7 @@ jobs:
           cmake --build --preset linux-gcc-release \
             --target cpp_bindings_linux cpp_core_ast_slim_json
       
-      - name: 'Set PACKAGE_VERSION from env.bat'
+      - name: 'Set PACKAGE_VERSION from env.sh'
         id: version
         run: |
           . build/env.sh
