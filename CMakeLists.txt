@@ -34,14 +34,99 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_MODULE_STD 26)
 set(CMAKE_CXX_MODULE_EXTENSIONS OFF)
 
+option(
+    CPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT
+    "Enable ASTrein JSON export for the cpp-core FFI headers"
+    OFF
+)
+set(
+    CPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE
+    ""
+    CACHE FILEPATH
+    "Path to the ASTrein executable used for FFI JSON export"
+)
+set(
+    CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT
+    "${CMAKE_BINARY_DIR}/ast/cpp_core_ffi_api.json"
+    CACHE FILEPATH
+    "Output path for the generated cpp-core FFI API metadata"
+)
+
 CPMAddPackage(
     NAME cpp_core
     GITHUB_REPOSITORY Serial-IO/cpp-core
-    GIT_TAG v2.0.0
+    GIT_TAG v2.0.1
     OPTIONS
     "CMAKE_EXPORT_COMPILE_COMMANDS OFF"
-    "CPP_CORE_ENABLE_AST_EXPORT ON"
 )
+
+if(CPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT)
+    if(CPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE)
+        set(_cpp_bindings_linux_astrein "${CPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE}")
+    else()
+        find_program(_cpp_bindings_linux_astrein NAMES astrein)
+    endif()
+
+    if(NOT _cpp_bindings_linux_astrein)
+        message(
+            FATAL_ERROR
+            "CPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON requires ASTrein. "
+            "Install astrein or set CPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE."
+        )
+    endif()
+
+    file(
+        GLOB_RECURSE _cpp_bindings_linux_ffi_headers
+        CONFIGURE_DEPENDS
+        "${cpp_core_SOURCE_DIR}/include/*.h"
+        "${cpp_core_SOURCE_DIR}/include/*.hpp"
+    )
+    set(
+        _cpp_bindings_linux_ffi_wrapper
+        "${CMAKE_BINARY_DIR}/ast/cpp_core_ffi_api.cpp"
+    )
+    get_filename_component(
+        _cpp_bindings_linux_ffi_output_dir
+        "${CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT}"
+        DIRECTORY
+    )
+
+    file(
+        GENERATE
+        OUTPUT "${_cpp_bindings_linux_ffi_wrapper}"
+        CONTENT "#include <cpp_core/serial.h>\n"
+    )
+
+    add_custom_command(
+        OUTPUT "${CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT}"
+        COMMAND
+            ${CMAKE_COMMAND} -E make_directory
+            "${_cpp_bindings_linux_ffi_output_dir}"
+        COMMAND
+            "${_cpp_bindings_linux_astrein}"
+            --mode=reduced
+            --require-c-linkage
+            --require-default-visibility
+            --public-header "cpp_core/serial.h"
+            --api-root "${cpp_core_SOURCE_DIR}/include"
+            --output "${CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT}"
+            "${_cpp_bindings_linux_ffi_wrapper}"
+            --
+            "-std=c++${CMAKE_CXX_STANDARD}"
+            "-I${cpp_core_SOURCE_DIR}/include"
+        DEPENDS
+            "${_cpp_bindings_linux_astrein}"
+            "${_cpp_bindings_linux_ffi_wrapper}"
+            ${_cpp_bindings_linux_ffi_headers}
+        COMMENT "Exporting cpp-core FFI API metadata with ASTrein"
+        VERBATIM
+    )
+
+    add_custom_target(
+        cpp_bindings_linux_ffi_json
+        DEPENDS "${CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT}"
+    )
+endif()
 
 CPMAddPackage(
     NAME GTest

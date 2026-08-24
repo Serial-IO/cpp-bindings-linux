@@ -15,6 +15,8 @@ jobs:
   build-binary:
     name: 'Build binary'
     runs-on: ubuntu-latest
+    env:
+      ASTREIN_VERSION: '1.0.0'
     permissions:
       contents: write
 
@@ -30,12 +32,20 @@ jobs:
           version: '16'
           platform: 'x64'
 
-      - name: 'Setup Clang for FFI metadata'
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: '22.1.0'
-          force-url: 'https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.0/LLVM-22.1.0-Linux-X64.tar.xz'
-          env: false
+      - name: 'Download ASTrein'
+        run: |
+          curl --fail --location \
+            --retry 100 \
+            --retry-all-errors \
+            --retry-delay 30 \
+            --retry-max-time 3000 \
+            --output "${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
+            "https://github.com/Katze719/ASTrein/releases/download/v${ASTREIN_VERSION}/astrein-linux-x86_64.tar.gz"
+          mkdir -p "${RUNNER_TEMP}/astrein"
+          tar -xzf "${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
+            -C "${RUNNER_TEMP}/astrein" \
+            --strip-components=1
+          "${RUNNER_TEMP}/astrein/bin/astrein" --version
 
       - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
@@ -47,12 +57,13 @@ jobs:
           cmake --preset linux-gcc-release \
             -DCMAKE_C_COMPILER=gcc-16 \
             -DCMAKE_CXX_COMPILER=g++-16 \
-            -DCPP_CORE_AST_CLANGXX="${LLVM_PATH}/bin/clang++"
+            -DCPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON \
+            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein"
 
       - name: 'Build'
         run: |
           cmake --build --preset linux-gcc-release \
-            --target cpp_bindings_linux cpp_core_ast_slim_json
+            --target cpp_bindings_linux cpp_bindings_linux_ffi_json
       
       - name: 'Set PACKAGE_VERSION from env.sh'
         id: version
