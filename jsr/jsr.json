@@ -13,11 +13,9 @@
       "jsr.json",
       "src/**",
       "bin/**",
-      "ffi/**"
     ],
     "exclude": [
       "!bin/",
-      "!ffi/"
     ]
   }
 }
