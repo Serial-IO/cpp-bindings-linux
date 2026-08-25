@@ -16,7 +16,8 @@ jobs:
     name: 'Build binary'
     runs-on: ubuntu-latest
     env:
-      ASTREIN_VERSION: '1.0.0'
+      ASTREIN_VERSION: '1.1.0'
+      ASTREIN_SHA256: 'd5964319ea5a3742e4d7223ee5963d6aa3b24c8f67ef75c61d591c635f413497'
     permissions:
       contents: write
 
@@ -35,12 +36,10 @@ jobs:
       - name: 'Download ASTrein'
         run: |
           curl --fail --location \
-            --retry 100 \
-            --retry-all-errors \
-            --retry-delay 30 \
-            --retry-max-time 3000 \
             --output "${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
             "https://github.com/Katze719/ASTrein/releases/download/v${ASTREIN_VERSION}/astrein-linux-x86_64.tar.gz"
+          echo "${ASTREIN_SHA256}  ${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
+            | sha256sum --check -
           mkdir -p "${RUNNER_TEMP}/astrein"
           tar -xzf "${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
             -C "${RUNNER_TEMP}/astrein" \

@@ -97,6 +97,23 @@ if(CPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT)
         CONTENT "#include <cpp_core/serial.h>\n"
     )
 
+    add_library(
+        cpp_bindings_linux_ffi_ast_context
+        OBJECT
+        EXCLUDE_FROM_ALL
+        "${_cpp_bindings_linux_ffi_wrapper}"
+    )
+    target_include_directories(
+        cpp_bindings_linux_ffi_ast_context
+        PRIVATE
+        "${cpp_core_SOURCE_DIR}/include"
+    )
+    target_compile_features(
+        cpp_bindings_linux_ffi_ast_context
+        PRIVATE
+        cxx_std_26
+    )
+
     add_custom_command(
         OUTPUT "${CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT}"
         COMMAND
@@ -104,18 +121,17 @@ if(CPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT)
             "${_cpp_bindings_linux_ffi_output_dir}"
         COMMAND
             "${_cpp_bindings_linux_astrein}"
-            --mode=reduced
+            --ffi
+            --compile-commands "${CMAKE_BINARY_DIR}/compile_commands.json"
             --require-c-linkage
             --require-default-visibility
             --public-header "cpp_core/serial.h"
             --api-root "${cpp_core_SOURCE_DIR}/include"
             --output "${CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT}"
             "${_cpp_bindings_linux_ffi_wrapper}"
-            --
-            "-std=c++${CMAKE_CXX_STANDARD}"
-            "-I${cpp_core_SOURCE_DIR}/include"
         DEPENDS
             "${_cpp_bindings_linux_astrein}"
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
             "${_cpp_bindings_linux_ffi_wrapper}"
             ${_cpp_bindings_linux_ffi_headers}
         COMMENT "Exporting cpp-core FFI API metadata with ASTrein"
