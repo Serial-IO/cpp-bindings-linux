@@ -12,10 +12,10 @@
       "LICENSE",
       "jsr.json",
       "src/**",
-      "bin/**",
+      "bin/**"
     ],
     "exclude": [
-      "!bin/",
+      "!bin/"
     ]
   }
 }
