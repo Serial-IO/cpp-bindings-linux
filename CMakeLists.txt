@@ -47,7 +47,7 @@ set(
 )
 set(
     CPP_BINDINGS_LINUX_FFI_JSON_OUTPUT
-    "${CMAKE_BINARY_DIR}/ast/ffi.json"
+    "${CMAKE_BINARY_DIR}/cpp_bindings_linux.ffi.json"
     CACHE FILEPATH
     "Output path for the generated cpp-core FFI API metadata"
 )
@@ -83,7 +83,7 @@ if(CPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT)
     )
     set(
         _cpp_bindings_linux_ffi_wrapper
-        "${CMAKE_BINARY_DIR}/ast/ffi.cpp"
+        "${CMAKE_BINARY_DIR}/ffi.cpp"
     )
     get_filename_component(
         _cpp_bindings_linux_ffi_output_dir

@@ -6,7 +6,7 @@
 Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 string inside the JSON file.
 
 The package also includes cpp-core FFI API metadata generated with
-[ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64.ast.json`.
+[ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64.ffi.json`.
 It describes the exported C symbols, parameter and return types, callbacks,
 default values, and API documentation used by downstream FFI adapter generators.
 
