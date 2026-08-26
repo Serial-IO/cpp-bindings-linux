@@ -108,10 +108,19 @@ jobs:
         with:
           cmake-version: '3.31.x'
 
+      - name: 'Install package-context compiler'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-14 \
+            g++-14
+
       - name: 'Configure package context'
         run: |
           cmake -S . -B build/package -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc-14 \
+            -DCMAKE_CXX_COMPILER=g++-14
 
       - name: 'Set package version'
         id: version
