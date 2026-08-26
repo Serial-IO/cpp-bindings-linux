@@ -5,13 +5,15 @@
  * Import the corresponding binary and write the file to disk.
  * 
  * ```ts
- * import {x86_64} from '@serial/cpp-bindings-linux/bin'
+ * import {aarch64, x86_64} from '@serial/cpp-bindings-linux/bin'
  * 
- * Deno.writeFileSync(`./${x86_64.filename}`, Uint8Array.fromBase64(x86_64.data))
+ * const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64
+ * Deno.writeFileSync(`./${binary.filename}`, Uint8Array.fromBase64(binary.data))
  * ```
  * @module
  */
 
+import aarch64 from '../../bin/aarch64.json' with { type: "json" }
 import x86_64 from '../../bin/x86_64.json' with { type: "json" }
 
-export {x86_64}
+export {aarch64, x86_64}

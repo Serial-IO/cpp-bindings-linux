@@ -1,6 +1,4 @@
 name: 'Test Unit C++'
-description: |
-  This workflow builds the library and runs the unit tests.
 
 on:
    workflow_call:
@@ -22,6 +20,8 @@ jobs:
     steps:
       - name: 'Checkout repository'
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: 'Download artifact'
         uses: actions/download-artifact@v4
@@ -51,15 +51,23 @@ jobs:
         run: |
           cmake --build --preset linux-gcc-release --target cpp_bindings_linux_tests
 
+      - name: 'Use portable release binary in tests'
+        run: |
+          cp -L artifacts/libcpp_bindings_linux.so \
+            "$(readlink -f build/libcpp_bindings_linux.so)"
+
       - name: 'Install test dependencies'
         run: |
           sudo apt-get install -y socat
 
       - name: Start virtual serial echo (socat)
         run: |
-          socat -d -d pty,raw,echo=0,link=$SERIAL_TEST_PORT_IN,mode=666 pty,raw,echo=0,link=$SERIAL_TEST_PORT_OUT,mode=666 &
+          socat -d -d \
+            "pty,raw,echo=0,link=${SERIAL_TEST_PORT_IN},mode=666" \
+            "pty,raw,echo=0,link=${SERIAL_TEST_PORT_OUT},mode=666" &
           sleep 2
-          stdbuf -i0 -o0 cat < $SERIAL_TEST_PORT_OUT > $SERIAL_TEST_PORT_OUT &
+          exec 3<>"${SERIAL_TEST_PORT_OUT}"
+          stdbuf -i0 -o0 cat <&3 >&3 &
           sleep 1
 
       - name: 'Run tests'
@@ -73,7 +81,7 @@ jobs:
 
           ./cpp_bindings_linux_tests \
             --gtest_color=yes \
-            --gtest_output=xml:$TEST_REPORT_NAME
+            --gtest_output="xml:${TEST_REPORT_NAME}"
       
       - name: 'Upload test report'
         if: always()
@@ -93,4 +101,3 @@ jobs:
           annotate_notice: true
           transformers: '[{"searchValue": "${{ github.workspace }}", "replaceValue": ""}]'
           check_title_template: '{{FILE_NAME}} | {{TEST_NAME}}'
-

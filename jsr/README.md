@@ -5,8 +5,13 @@
 
 Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 string inside the JSON file.
 
-The package also includes cpp-core FFI API metadata generated with
-[ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64.ffi.json`.
+The package contains portable binaries for `linux-x86_64-gnu` and
+`linux-aarch64-gnu`, both requiring glibc 2.28 or newer. The x86-64 artifact
+uses the generic x86-64 baseline.
+
+It also includes cpp-core FFI API metadata generated with
+[ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64.ffi.json` and
+`bin/aarch64.ffi.json`.
 It describes the exported C symbols, parameter and return types, callbacks,
 default values, and API documentation used by downstream FFI adapter generators.
 
@@ -18,9 +23,10 @@ This package is primarily intended as a dependency for [`@serial/serial`](https:
 Import the JSON and write the binary data to disk:
 
 ```ts
-import {x86_64} from '@serial/cpp-bindings-linux/bin';
+import {aarch64, x86_64} from '@serial/cpp-bindings-linux/bin';
 
-Deno.writeFileSync(`./${x86_64.filename}`, Uint8Array.fromBase64(x86_64.data));
+const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
+Deno.writeFileSync(`./${binary.filename}`, Uint8Array.fromBase64(binary.data));
 
 // Now you can open the binary using for example `Deno.dlopen`...
 ```

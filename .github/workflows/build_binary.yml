@@ -1,25 +1,22 @@
 name: 'Build Binary'
-description: |
-  This workflow builds the binary files for Linux. The build binaries are stored as artifact
-  and may be reused by other workflows.
 
 on:
   push:
-    branches: [ 'main' ]
-    tags: [ '*' ]
-
+    branches: ['main']
+    tags: ['*']
   pull_request:
-    branches: [ '*' ]
+    branches: ['*']
 
 jobs:
-  build-binary:
-    name: 'Build binary'
-    runs-on: ubuntu-latest
+  generate-metadata:
+    name: 'Generate FFI metadata'
+    runs-on: ubuntu-24.04
     env:
       ASTREIN_VERSION: '1.1.0'
       ASTREIN_SHA256: 'd5964319ea5a3742e4d7223ee5963d6aa3b24c8f67ef75c61d591c635f413497'
-    permissions:
-      contents: write
+    outputs:
+      package_version: ${{ steps.version.outputs.PACKAGE_VERSION }}
+      is_valid_package_version: ${{ steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION }}
 
     steps:
       - name: 'Checkout repository'
@@ -59,75 +56,170 @@ jobs:
             -DCPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON \
             -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein"
 
-      - name: 'Build'
+      - name: 'Generate metadata'
         run: |
           cmake --build --preset linux-gcc-release \
-            --target cpp_bindings_linux cpp_bindings_linux_ffi_json
-      
-      - name: 'Set PACKAGE_VERSION from env.sh'
+            --target cpp_bindings_linux_ffi_json
+
+      - name: 'Set package version'
         id: version
         run: |
           . build/env.sh
-          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "PACKAGE_VERSION=${PACKAGE_VERSION}" >> "${GITHUB_OUTPUT}"
 
-      - name: 'Check tag'
-        id: 'check-tag'
+      - name: 'Check package version'
+        id: check-tag
         env:
           PACKAGE_VERSION: ${{ steps.version.outputs.PACKAGE_VERSION }}
-
         run: |
-          if [[ "$PACKAGE_VERSION" =~ ^(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
-            echo "Version \"$PACKAGE_VERSION\" is a valid package version."
-            echo "IS_VALID_PACKAGE_VERSION=true" >> $GITHUB_OUTPUT
+          if [[ "${PACKAGE_VERSION}" =~ ^(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)\.(0|[1-9][[:digit:]]*)(-(alpha|rc|beta|experimental)\.[1-9][[:digit:]]*)?$ ]]; then
+            echo "Version \"${PACKAGE_VERSION}\" is a valid package version."
+            echo "IS_VALID_PACKAGE_VERSION=true" >> "${GITHUB_OUTPUT}"
           else
-            echo "Version \"$PACKAGE_VERSION\" is not a valid package version."
-            echo "IS_VALID_PACKAGE_VERSION=false" >> $GITHUB_OUTPUT
+            echo "Version \"${PACKAGE_VERSION}\" is not a valid package version."
+            echo "IS_VALID_PACKAGE_VERSION=false" >> "${GITHUB_OUTPUT}"
           fi
 
-      - name: 'Upload artifacts'
+      - name: 'Upload FFI metadata'
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: libcpp_bindings_linux
-          path: |
-            build/libcpp_bindings_linux.so
-            build/cpp_bindings_linux.ffi.json
+          name: cpp-bindings-linux-ffi
+          path: build/cpp_bindings_linux.ffi.json
 
-      - name: 'Create GitHub Release'
-        if: github.ref_type == 'tag' && steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION == 'true'
-        uses: softprops/action-gh-release@v2
+  build-binary:
+    name: 'Build ${{ matrix.target }}'
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64-gnu
+            runner: ubuntu-24.04
+            image: quay.io/pypa/manylinux_2_28_x86_64@sha256:4dc41da7df20400310c80d162a2fe2d2c2f3d9734d8dec20f6b9843711618deb
+            artifact: libcpp_bindings_linux-linux-x86_64-gnu
+          - target: linux-aarch64-gnu
+            runner: ubuntu-24.04-arm
+            image: quay.io/pypa/manylinux_2_28_aarch64@sha256:29a6ceb78de5b00494e6e7456a72782a4cb54238de102e7491d15fe47789b4d1
+            artifact: libcpp_bindings_linux-linux-aarch64-gnu
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
         with:
-          name: 'v${{ steps.version.outputs.PACKAGE_VERSION }}'
-          tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
-          files: |
-            build/libcpp_bindings_windows.so
-            build/cpp_bindings_linux.ffi.json
-    
-    outputs:
-      package_version: ${{ steps.version.outputs.PACKAGE_VERSION }}
-      is_valid_package_version: ${{ steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION }}
+          fetch-depth: 0
+
+      - name: 'Configure portable release'
+        run: |
+          cmake -S . -B build -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            -DCPP_BINDINGS_LINUX_PORTABLE_CPU_BASELINE=ON \
+            -DCPP_BINDINGS_LINUX_STATIC_CXX_RUNTIME=ON
+
+      - name: 'Build and test'
+        run: |
+          cmake --build build \
+            --target cpp_bindings_linux cpp_bindings_linux_tests \
+            --parallel 4
+          ctest --test-dir build \
+            --output-on-failure \
+            --output-junit test-report.xml
+
+      - name: 'Stage and verify binary'
+        run: |
+          mkdir -p "dist/${{ matrix.target }}"
+          cp -L build/libcpp_bindings_linux.so \
+            "dist/${{ matrix.target }}/libcpp_bindings_linux.so"
+          ./scripts/verify_release_binary.sh \
+            "dist/${{ matrix.target }}/libcpp_bindings_linux.so" \
+            "${{ matrix.target }}"
+
+      - name: 'Upload test report'
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: warn
+          name: test-report-${{ matrix.target }}
+          path: build/test-report.xml
+
+      - name: 'Upload binary'
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.target }}/libcpp_bindings_linux.so
 
   test-unit-cpp:
     name: 'Run: Test Unit C++'
     needs: ['build-binary']
     uses: './.github/workflows/test_unit_cpp.yml'
     with:
-      artifact-name: libcpp_bindings_linux
-    
+      artifact-name: libcpp_bindings_linux-linux-x86_64-gnu
     permissions:
       contents: read
       checks: write
-  
+
+  create-release:
+    name: 'Create GitHub release'
+    needs: ['generate-metadata', 'build-binary', 'test-unit-cpp']
+    if: github.ref_type == 'tag' && needs.generate-metadata.outputs.is_valid_package_version == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: 'Download x86-64 binary'
+        uses: actions/download-artifact@v4
+        with:
+          name: libcpp_bindings_linux-linux-x86_64-gnu
+          path: release/x86_64
+
+      - name: 'Download AArch64 binary'
+        uses: actions/download-artifact@v4
+        with:
+          name: libcpp_bindings_linux-linux-aarch64-gnu
+          path: release/aarch64
+
+      - name: 'Download FFI metadata'
+        uses: actions/download-artifact@v4
+        with:
+          name: cpp-bindings-linux-ffi
+          path: release/ffi
+
+      - name: 'Name release assets'
+        run: |
+          mv release/x86_64/libcpp_bindings_linux.so \
+            release/libcpp_bindings_linux-linux-x86_64-gnu.so
+          mv release/aarch64/libcpp_bindings_linux.so \
+            release/libcpp_bindings_linux-linux-aarch64-gnu.so
+          mv release/ffi/cpp_bindings_linux.ffi.json \
+            release/cpp_bindings_linux.ffi.json
+
+      - name: 'Create GitHub release'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 'v${{ needs.generate-metadata.outputs.package_version }}'
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            release/libcpp_bindings_linux-linux-x86_64-gnu.so
+            release/libcpp_bindings_linux-linux-aarch64-gnu.so
+            release/cpp_bindings_linux.ffi.json
+
   publish-jsr:
     name: 'Run: Publish JSR'
-    needs: ['build-binary', 'test-unit-cpp']
+    needs: ['generate-metadata', 'build-binary', 'test-unit-cpp']
     uses: './.github/workflows/publish_jsr.yml'
     with:
-      publish: ${{ needs.build-binary.outputs.is_valid_package_version == 'true' }}
-      version: ${{ needs.build-binary.outputs.package_version }}
-      artifact-name: libcpp_bindings_linux
-    
+      publish: ${{ needs.generate-metadata.outputs.is_valid_package_version == 'true' }}
+      version: ${{ needs.generate-metadata.outputs.package_version }}
+      x86-64-artifact-name: libcpp_bindings_linux-linux-x86_64-gnu
+      aarch64-artifact-name: libcpp_bindings_linux-linux-aarch64-gnu
+      ffi-artifact-name: cpp-bindings-linux-ffi
     permissions:
       contents: read
       id-token: write
