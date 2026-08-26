@@ -24,11 +24,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 'Setup GCC'
-        uses: egor-tensin/setup-gcc@v2
-        with:
-          version: '16'
-          platform: 'x64'
+      - name: 'Install native and cross compilers'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-14 \
+            g++-14 \
+            gcc-14-aarch64-linux-gnu \
+            g++-14-aarch64-linux-gnu
 
       - name: 'Download ASTrein'
         run: |
@@ -48,23 +51,39 @@ jobs:
         with:
           cmake-version: '3.31.x'
 
-      - name: 'Configure CMake'
+      - name: 'Configure x86-64 metadata context'
         run: |
-          cmake --preset linux-gcc-release \
-            -DCMAKE_C_COMPILER=gcc-16 \
-            -DCMAKE_CXX_COMPILER=g++-16 \
+          cmake -S . -B build/ffi/x86_64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=gcc-14 \
+            -DCMAKE_CXX_COMPILER=g++-14 \
             -DCPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON \
-            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein"
+            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein" \
+            -DCPP_BINDINGS_LINUX_FFI_JSON_OUTPUT="${GITHUB_WORKSPACE}/dist/ffi/x86_64.ffi.json"
 
-      - name: 'Generate metadata'
+      - name: 'Configure AArch64 metadata context'
         run: |
-          cmake --build --preset linux-gcc-release \
+          cmake -S . -B build/ffi/aarch64 -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc-14 \
+            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++-14 \
+            -DCPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON \
+            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein" \
+            -DCPP_BINDINGS_LINUX_FFI_JSON_OUTPUT="${GITHUB_WORKSPACE}/dist/ffi/aarch64.ffi.json"
+
+      - name: 'Generate target-specific metadata'
+        run: |
+          cmake --build build/ffi/x86_64 \
+            --target cpp_bindings_linux_ffi_json
+          cmake --build build/ffi/aarch64 \
             --target cpp_bindings_linux_ffi_json
 
       - name: 'Set package version'
         id: version
         run: |
-          . build/env.sh
+          . build/ffi/x86_64/env.sh
           echo "PACKAGE_VERSION=${PACKAGE_VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: 'Check package version'
@@ -85,7 +104,7 @@ jobs:
         with:
           if-no-files-found: error
           name: cpp-bindings-linux-ffi
-          path: build/cpp_bindings_linux.ffi.json
+          path: dist/ffi/*.ffi.json
 
   build-binary:
     name: 'Build ${{ matrix.target }}'
@@ -96,14 +115,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: linux-x86_64-gnu
+          - target: x86_64-linux-gnu
             runner: ubuntu-24.04
             image: quay.io/pypa/manylinux_2_28_x86_64@sha256:4dc41da7df20400310c80d162a2fe2d2c2f3d9734d8dec20f6b9843711618deb
-            artifact: libcpp_bindings_linux-linux-x86_64-gnu
-          - target: linux-aarch64-gnu
+            artifact: libcpp_bindings_linux-x86_64-linux-gnu
+          - target: aarch64-linux-gnu
             runner: ubuntu-24.04-arm
             image: quay.io/pypa/manylinux_2_28_aarch64@sha256:29a6ceb78de5b00494e6e7456a72782a4cb54238de102e7491d15fe47789b4d1
-            artifact: libcpp_bindings_linux-linux-aarch64-gnu
+            artifact: libcpp_bindings_linux-aarch64-linux-gnu
 
     steps:
       - name: 'Checkout repository'
@@ -158,7 +177,7 @@ jobs:
     needs: ['build-binary']
     uses: './.github/workflows/test_unit_cpp.yml'
     with:
-      artifact-name: libcpp_bindings_linux-linux-x86_64-gnu
+      artifact-name: libcpp_bindings_linux-x86_64-linux-gnu
     permissions:
       contents: read
       checks: write
@@ -175,13 +194,13 @@ jobs:
       - name: 'Download x86-64 binary'
         uses: actions/download-artifact@v4
         with:
-          name: libcpp_bindings_linux-linux-x86_64-gnu
+          name: libcpp_bindings_linux-x86_64-linux-gnu
           path: release/x86_64
 
       - name: 'Download AArch64 binary'
         uses: actions/download-artifact@v4
         with:
-          name: libcpp_bindings_linux-linux-aarch64-gnu
+          name: libcpp_bindings_linux-aarch64-linux-gnu
           path: release/aarch64
 
       - name: 'Download FFI metadata'
@@ -193,11 +212,13 @@ jobs:
       - name: 'Name release assets'
         run: |
           mv release/x86_64/libcpp_bindings_linux.so \
-            release/libcpp_bindings_linux-linux-x86_64-gnu.so
+            release/libcpp_bindings_linux-x86_64-linux-gnu.so
           mv release/aarch64/libcpp_bindings_linux.so \
-            release/libcpp_bindings_linux-linux-aarch64-gnu.so
-          mv release/ffi/cpp_bindings_linux.ffi.json \
-            release/cpp_bindings_linux.ffi.json
+            release/libcpp_bindings_linux-aarch64-linux-gnu.so
+          mv release/ffi/x86_64.ffi.json \
+            release/cpp_bindings_linux-x86_64-linux-gnu.ffi.json
+          mv release/ffi/aarch64.ffi.json \
+            release/cpp_bindings_linux-aarch64-linux-gnu.ffi.json
 
       - name: 'Create GitHub release'
         uses: softprops/action-gh-release@v2
@@ -206,9 +227,10 @@ jobs:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            release/libcpp_bindings_linux-linux-x86_64-gnu.so
-            release/libcpp_bindings_linux-linux-aarch64-gnu.so
-            release/cpp_bindings_linux.ffi.json
+            release/libcpp_bindings_linux-x86_64-linux-gnu.so
+            release/libcpp_bindings_linux-aarch64-linux-gnu.so
+            release/cpp_bindings_linux-x86_64-linux-gnu.ffi.json
+            release/cpp_bindings_linux-aarch64-linux-gnu.ffi.json
 
   publish-jsr:
     name: 'Run: Publish JSR'
@@ -217,8 +239,8 @@ jobs:
     with:
       publish: ${{ needs.generate-metadata.outputs.is_valid_package_version == 'true' }}
       version: ${{ needs.generate-metadata.outputs.package_version }}
-      x86-64-artifact-name: libcpp_bindings_linux-linux-x86_64-gnu
-      aarch64-artifact-name: libcpp_bindings_linux-linux-aarch64-gnu
+      x86-64-artifact-name: libcpp_bindings_linux-x86_64-linux-gnu
+      aarch64-artifact-name: libcpp_bindings_linux-aarch64-linux-gnu
       ffi-artifact-name: cpp-bindings-linux-ffi
     permissions:
       contents: read

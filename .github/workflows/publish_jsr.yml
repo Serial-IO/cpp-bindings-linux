@@ -24,7 +24,7 @@ on:
         type: string
 
       ffi-artifact-name:
-        description: 'Name of the shared FFI metadata artifact'
+        description: 'Name of the target-specific FFI metadata artifact'
         required: true
         type: string
 
@@ -70,18 +70,18 @@ jobs:
           mkdir -p ./jsr/bin
           cp ./artifacts/x86_64/libcpp_bindings_linux.so ./jsr/bin/x86_64.so
           cp ./artifacts/aarch64/libcpp_bindings_linux.so ./jsr/bin/aarch64.so
-          cp ./artifacts/ffi/cpp_bindings_linux.ffi.json ./jsr/bin/x86_64.ffi.json
-          cp ./artifacts/ffi/cpp_bindings_linux.ffi.json ./jsr/bin/aarch64.ffi.json
+          cp ./artifacts/ffi/x86_64.ffi.json ./jsr/bin/x86_64.ffi.json
+          cp ./artifacts/ffi/aarch64.ffi.json ./jsr/bin/aarch64.ffi.json
 
           ./jsr/scripts/binary_to_json.sh \
             ./jsr/bin/x86_64.so \
             ./jsr/bin/x86_64.json \
-            linux-x86_64-gnu
+            x86_64-linux-gnu
 
           ./jsr/scripts/binary_to_json.sh \
             ./jsr/bin/aarch64.so \
             ./jsr/bin/aarch64.json \
-            linux-aarch64-gnu
+            aarch64-linux-gnu
 
           ./jsr/scripts/set_version.sh \
             jsr/jsr.json \

@@ -2,7 +2,7 @@
 set -eu
 
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <binary-path> <linux-x86_64-gnu|linux-aarch64-gnu>" >&2
+    echo "Usage: $0 <binary-path> <x86_64-linux-gnu|aarch64-linux-gnu>" >&2
     exit 1
 fi
 
@@ -16,10 +16,10 @@ if [ ! -f "$BINARY_PATH" ]; then
 fi
 
 case "$TARGET" in
-    linux-x86_64-gnu)
+    x86_64-linux-gnu)
         EXPECTED_MACHINE="Advanced Micro Devices X86-64"
         ;;
-    linux-aarch64-gnu)
+    aarch64-linux-gnu)
         EXPECTED_MACHINE="AArch64"
         ;;
     *)
@@ -52,7 +52,7 @@ else
     HIGHEST_GLIBC_VERSION=none
 fi
 
-if [ "$TARGET" = "linux-x86_64-gnu" ]; then
+if [ "$TARGET" = "x86_64-linux-gnu" ]; then
     X86_PROPERTIES=$(readelf --notes "$BINARY_PATH" 2>/dev/null)
     if printf '%s\n' "$X86_PROPERTIES" | grep -Eq 'x86-64-v[234]'; then
         echo "x86-64 release binary requires a higher-than-baseline ISA" >&2

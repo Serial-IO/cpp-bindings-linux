@@ -32,8 +32,8 @@ Official release and JSR artifacts are built for these GNU/Linux targets:
 
 | Target | CPU baseline | Minimum glibc |
 | --- | --- | --- |
-| `linux-x86_64-gnu` | generic x86-64 | 2.28 |
-| `linux-aarch64-gnu` | ARMv8-A | 2.28 |
+| `x86_64-linux-gnu` | generic x86-64 | 2.28 |
+| `aarch64-linux-gnu` | ARMv8-A | 2.28 |
 
 The release builds statically include the GNU C++ and compiler runtimes. They
 still use the target system's glibc and therefore require glibc 2.28 or newer.

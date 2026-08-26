@@ -5,8 +5,8 @@
 
 Binaries are provided as a [package on JSR](https://jsr.io/@serial/cpp-bindings-linux). They are serialized as a base64 string inside the JSON file.
 
-The package contains portable binaries for `linux-x86_64-gnu` and
-`linux-aarch64-gnu`, both requiring glibc 2.28 or newer. The x86-64 artifact
+The package contains portable binaries for `x86_64-linux-gnu` and
+`aarch64-linux-gnu`, both requiring glibc 2.28 or newer. The x86-64 artifact
 uses the generic x86-64 baseline.
 
 It also includes cpp-core FFI API metadata generated with
