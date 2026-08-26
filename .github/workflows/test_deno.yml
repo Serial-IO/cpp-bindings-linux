@@ -50,7 +50,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release --target cpp_bindings_linux
 
       - name: Start virtual serial echo (socat)
         run: |
