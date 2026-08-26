@@ -50,6 +50,7 @@ jobs:
         run: |
           mkdir -p ./jsr/bin
           cp ./artifacts/libcpp_bindings_linux.so ./jsr/bin/x86_64.so
+          cp ./artifacts/cpp_bindings_linux.ffi.json ./jsr/bin/x86_64.ffi.json
 
           ./jsr/scripts/binary_to_json.sh \
             ./artifacts/libcpp_bindings_linux.so \
@@ -71,4 +72,3 @@ jobs:
         working-directory: jsr
         run: |
           deno publish --allow-dirty --dry-run
-

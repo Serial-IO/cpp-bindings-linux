@@ -15,6 +15,9 @@ jobs:
   build-binary:
     name: 'Build binary'
     runs-on: ubuntu-latest
+    env:
+      ASTREIN_VERSION: '1.1.0'
+      ASTREIN_SHA256: 'd5964319ea5a3742e4d7223ee5963d6aa3b24c8f67ef75c61d591c635f413497'
     permissions:
       contents: write
 
@@ -30,6 +33,19 @@ jobs:
           version: '16'
           platform: 'x64'
 
+      - name: 'Download ASTrein'
+        run: |
+          curl --fail --location \
+            --output "${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
+            "https://github.com/Katze719/ASTrein/releases/download/v${ASTREIN_VERSION}/astrein-linux-x86_64.tar.gz"
+          echo "${ASTREIN_SHA256}  ${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
+            | sha256sum --check -
+          mkdir -p "${RUNNER_TEMP}/astrein"
+          tar -xzf "${RUNNER_TEMP}/astrein-linux-x86_64.tar.gz" \
+            -C "${RUNNER_TEMP}/astrein" \
+            --strip-components=1
+          "${RUNNER_TEMP}/astrein/bin/astrein" --version
+
       - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
         with:
@@ -39,13 +55,16 @@ jobs:
         run: |
           cmake --preset linux-gcc-release \
             -DCMAKE_C_COMPILER=gcc-16 \
-            -DCMAKE_CXX_COMPILER=g++-16
+            -DCMAKE_CXX_COMPILER=g++-16 \
+            -DCPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON \
+            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein"
 
       - name: 'Build'
         run: |
-          cmake --build --preset linux-gcc-release --target cpp_bindings_linux
+          cmake --build --preset linux-gcc-release \
+            --target cpp_bindings_linux cpp_bindings_linux_ffi_json
       
-      - name: 'Set PACKAGE_VERSION from env.bat'
+      - name: 'Set PACKAGE_VERSION from env.sh'
         id: version
         run: |
           . build/env.sh
@@ -70,7 +89,9 @@ jobs:
         with:
           if-no-files-found: error
           name: libcpp_bindings_linux
-          path: build/libcpp_bindings_linux.so
+          path: |
+            build/libcpp_bindings_linux.so
+            build/cpp_bindings_linux.ffi.json
 
       - name: 'Create GitHub Release'
         if: github.ref_type == 'tag' && steps.check-tag.outputs.IS_VALID_PACKAGE_VERSION == 'true'
@@ -79,7 +100,9 @@ jobs:
           name: 'v${{ steps.version.outputs.PACKAGE_VERSION }}'
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: build/out/libcpp_bindings_windows.dll
+          files: |
+            build/libcpp_bindings_windows.so
+            build/cpp_bindings_linux.ffi.json
     
     outputs:
       package_version: ${{ steps.version.outputs.PACKAGE_VERSION }}
