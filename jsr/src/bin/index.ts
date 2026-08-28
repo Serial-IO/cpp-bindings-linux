@@ -19,13 +19,9 @@
  * @module
  */
 
-import aarch64Library from "../../bin/aarch64/library.json" with {
-  type: "json",
-};
+import aarch64Library from "../../bin/aarch64/library.json" with { type: "json" };
 import aarch64ffi from "../../bin/aarch64/ffi.json" with { type: "json" };
-import x86_64Library from "../../bin/x86_64/library.json" with {
-  type: "json",
-};
+import x86_64Library from "../../bin/x86_64/library.json" with { type: "json" };
 import x86_64ffi from "../../bin/x86_64/ffi.json" with { type: "json" };
 
 const aarch64 = {
