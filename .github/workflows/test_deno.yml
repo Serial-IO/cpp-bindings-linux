@@ -3,16 +3,23 @@ name: Deno Integration Tests
 on:
   push:
     branches: [ main, master ]
-  pull_request:
+  pull_request: {}
 
 jobs:
   deno-tests:
-    name: Deno integration tests (deno ${{ matrix.deno }})
-    runs-on: ubuntu-latest
+    name: Deno integration tests (${{ matrix.arch }}, deno ${{ matrix.deno }})
+    runs-on: ${{ matrix.runner }}
 
     strategy:
+      fail-fast: false
       matrix:
         deno: ["2.6.0", "2.5.0"]
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Checkout repository
@@ -23,33 +30,34 @@ jobs:
         with:
           deno-version: v${{ matrix.deno }}
 
-      - name: Setup GCC
-        uses: egor-tensin/setup-gcc@v2
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
         with:
-          version: '16'
-          platform: 'x64'
+          cmake-version: '3.31.x'
 
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build socat git
+          sudo apt-get install -y gcc-14 g++-14 ninja-build socat git
 
       - name: Configure CMake
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=gcc-16 \
-            -DCMAKE_CXX_COMPILER=g++-16
+            -DCMAKE_C_COMPILER=gcc-14 \
+            -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCPP_BINDINGS_LINUX_PORTABLE_CPU_BASELINE=ON
 
       - name: Build
         run: |
-          cmake --build build --config Release
+          cmake --build build --config Release --target cpp_bindings_linux
 
       - name: Start virtual serial echo (socat)
         run: |
           socat -d -d pty,raw,echo=0,link=/tmp/ttyCI_A,mode=666 pty,raw,echo=0,link=/tmp/ttyCI_B,mode=666 &
           sleep 2
-          stdbuf -i0 -o0 cat < /tmp/ttyCI_B > /tmp/ttyCI_B &
+          exec 3<>/tmp/ttyCI_B
+          stdbuf -i0 -o0 cat <&3 >&3 &
           sleep 1
 
       - name: Run Deno integration tests

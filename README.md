@@ -13,7 +13,7 @@ configuring, reading from, and writing to serial ports.
 - Git
 - CMake 3.30 or newer
 - Ninja
-- A compiler with C++26 support (CI uses GCC 16)
+- A compiler with sufficient C++26 support
 
 CMake downloads `cpp-core` and GoogleTest automatically during configuration.
 
@@ -28,12 +28,34 @@ cmake --build --preset linux-gcc-release --target cpp_bindings_linux
 
 The shared library is written to `build/libcpp_bindings_linux.so`.
 
+Official release and JSR artifacts are built for these GNU/Linux targets:
+
+| Target | CPU baseline | Minimum glibc |
+| --- | --- | --- |
+| `x86_64-linux-gnu` | generic x86-64 | 2.28 |
+| `aarch64-linux-gnu` | ARMv8-A | 2.28 |
+
+The release builds statically include the GNU C++ and compiler runtimes. They
+still use the target system's glibc and therefore require glibc 2.28 or newer.
+To reproduce the portable release configuration for the host architecture:
+
+```sh
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCPP_BINDINGS_LINUX_PORTABLE_CPU_BASELINE=ON \
+  -DCPP_BINDINGS_LINUX_STATIC_CXX_RUNTIME=ON
+cmake --build build --target cpp_bindings_linux
+```
+
+The CI release builds use pinned `manylinux_2_28` images with GCC 14. GCC 16
+is used separately to generate the ASTrein FFI metadata.
+
 To select a specific compiler, add it while configuring, for example:
 
 ```sh
 cmake --preset linux-gcc-release \
-  -DCMAKE_C_COMPILER=gcc-16 \
-  -DCMAKE_CXX_COMPILER=g++-16
+  -DCMAKE_C_COMPILER=gcc-14 \
+  -DCMAKE_CXX_COMPILER=g++-14
 ```
 
 ## Tests

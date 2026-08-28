@@ -39,6 +39,16 @@ option(
     "Enable ASTrein JSON export for the cpp-core FFI headers"
     OFF
 )
+option(
+    CPP_BINDINGS_LINUX_PORTABLE_CPU_BASELINE
+    "Build for the generic CPU baseline of the current architecture"
+    OFF
+)
+option(
+    CPP_BINDINGS_LINUX_STATIC_CXX_RUNTIME
+    "Statically link the GNU C++ and compiler runtimes into the shared library"
+    OFF
+)
 set(
     CPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE
     ""
@@ -169,19 +179,56 @@ set_target_properties(
 
 target_include_directories(
     cpp_bindings_linux
-    PUBLIC
+    PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated>
+    $<BUILD_INTERFACE:${cpp_core_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(
-    cpp_bindings_linux
-    PUBLIC
-    cpp_core::cpp_core
-)
+target_compile_features(cpp_bindings_linux PRIVATE cxx_std_26)
 
-target_compile_features(cpp_bindings_linux PUBLIC cxx_std_26)
+if(CPP_BINDINGS_LINUX_PORTABLE_CPU_BASELINE)
+    string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _cpp_bindings_linux_processor)
+
+    if(_cpp_bindings_linux_processor MATCHES "^(x86_64|amd64)$")
+        target_compile_options(
+            cpp_bindings_linux
+            PRIVATE
+            -march=x86-64
+            -mtune=generic
+        )
+    elseif(_cpp_bindings_linux_processor MATCHES "^(aarch64|arm64)$")
+        target_compile_options(
+            cpp_bindings_linux
+            PRIVATE
+            -march=armv8-a
+        )
+    else()
+        message(
+            FATAL_ERROR
+            "CPP_BINDINGS_LINUX_PORTABLE_CPU_BASELINE does not support "
+            "CMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}"
+        )
+    endif()
+endif()
+
+if(CPP_BINDINGS_LINUX_STATIC_CXX_RUNTIME)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(
+            FATAL_ERROR
+            "CPP_BINDINGS_LINUX_STATIC_CXX_RUNTIME currently requires GCC"
+        )
+    endif()
+
+    target_link_options(
+        cpp_bindings_linux
+        PRIVATE
+        -static-libstdc++
+        -static-libgcc
+        "LINKER:--exclude-libs,ALL"
+    )
+endif()
 
 file(GLOB SRC_UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
 file(GLOB TESTS_INTEGRATION "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.test.cpp")
@@ -197,6 +244,7 @@ if(TEST_SOURCES)
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_BINARY_DIR}/generated
+        ${cpp_core_SOURCE_DIR}/include
     )
 
     target_link_libraries(
