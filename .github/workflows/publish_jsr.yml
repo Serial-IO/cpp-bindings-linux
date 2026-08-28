@@ -70,36 +70,36 @@ jobs:
 
       - name: 'Prepare files for JSR'
         run: |
-          mkdir -p ./registries/jsr/bin/x86_64
-          cp ./artifacts/x86_64/libcpp_bindings_linux.so ./registries/jsr/bin/x86_64/library.so
-          cp ./artifacts/ffi/x86_64.ffi.json ./registries/jsr/bin/x86_64/ffi.json
+          mkdir -p ./jsr/bin/x86_64
+          cp ./artifacts/x86_64/libcpp_bindings_linux.so ./jsr/bin/x86_64/library.so
+          cp ./artifacts/ffi/x86_64.ffi.json ./jsr/bin/x86_64/ffi.json
           
-          mkdir -p ./registries/jsr/bin/aarch64
-          cp ./artifacts/aarch64/libcpp_bindings_linux.so ./registries/jsr/bin/aarch64/library.so
-          cp ./artifacts/ffi/aarch64.ffi.json ./registries/jsr/bin/aarch64/ffi.json
+          mkdir -p ./jsr/bin/aarch64
+          cp ./artifacts/aarch64/libcpp_bindings_linux.so ./jsr/bin/aarch64/library.so
+          cp ./artifacts/ffi/aarch64.ffi.json ./jsr/bin/aarch64/ffi.json
 
-          ./registries/jsr/scripts/binary_to_json.sh \
-            ./registries/jsr/bin/x86_64/library.so \
-            ./registries/jsr/bin/x86_64/library.json \
+          ./jsr/scripts/binary_to_json.sh \
+            ./jsr/bin/x86_64/library.so \
+            ./jsr/bin/x86_64/library.json \
             x86_64-linux-gnu
 
-          ./registries/jsr/scripts/binary_to_json.sh \
-            ./registries/jsr/bin/aarch64/library.so \
-            ./registries/jsr/bin/aarch64/library.json \
+          ./jsr/scripts/binary_to_json.sh \
+            ./jsr/bin/aarch64/library.so \
+            ./jsr/bin/aarch64/library.json \
             aarch64-linux-gnu
 
-          ./registries/jsr/scripts/set_version.sh \
+          ./jsr/scripts/set_version.sh \
             registries/jsr/jsr.json \
             "${{ inputs.version }}"
       
       - name: 'Publish package to JSR (normal)'
         if: inputs.publish
-        working-directory: registries/jsr
+        working-directory: jsr
         run: |
           deno publish --allow-dirty
 
       - name: 'Publish package to JSR (dry-run)'
         if: ${{ !inputs.publish }}
-        working-directory: registries/jsr
+        working-directory: jsr
         run: |
           deno publish --allow-dirty --dry-run
