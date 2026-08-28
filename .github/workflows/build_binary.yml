@@ -57,7 +57,7 @@ jobs:
           curl --fail --location \
             --output "${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
             "https://github.com/Katze719/ASTrein/releases/download/v${ASTREIN_VERSION}/${{ matrix.astrein-archive }}"
-          echo "${ASTREIN_SHA256}  ${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
+          echo "${ASTREIN_SHA256} ${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
             | sha256sum --check -
           mkdir -p "${RUNNER_TEMP}/astrein"
           tar -xzf "${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
