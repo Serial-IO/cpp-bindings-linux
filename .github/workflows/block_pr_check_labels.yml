@@ -1,4 +1,7 @@
 name: 'Block PR Check Labels'
+description: |
+  This workflow checks for specific labels and if a forbidden label exists, fails the pipeline,
+  thus preventing the merge.
 
 on:
   pull_request:

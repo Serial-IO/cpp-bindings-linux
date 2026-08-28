@@ -1,4 +1,6 @@
 name: 'Test Unit C++'
+description: |
+  This workflow builds the library and runs the unit tests.
 
 on:
    workflow_call:
