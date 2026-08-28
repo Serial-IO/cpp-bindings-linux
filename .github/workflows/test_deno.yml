@@ -3,7 +3,7 @@ name: Deno Integration Tests
 on:
   push:
     branches: [ main, master ]
-  pull_request:
+  pull_request: {}
 
 jobs:
   deno-tests:
