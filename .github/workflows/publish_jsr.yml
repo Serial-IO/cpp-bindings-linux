@@ -89,7 +89,7 @@ jobs:
             aarch64-linux-gnu
 
           ./jsr/scripts/set_version.sh \
-            registries/jsr/jsr.json \
+            jsr/jsr.json \
             "${{ inputs.version }}"
       
       - name: 'Publish package to JSR (normal)'
