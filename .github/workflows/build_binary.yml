@@ -27,13 +27,13 @@ jobs:
             arch: x86_64
             runner: ubuntu-24.04
             astrein-archive: astrein-linux-x86_64.tar.gz
-            astrein-sha256: '5c7ece7b3ab76deb562e4152541c40c042bfe5964e93cef152d04448d92188f2'
+            astrein-sha256: 'c024f62f8bb4c7b5342249de5844d19276ae92293bf8cc7edf7475280503168e'
 
           - target: aarch64-linux-gnu
             arch: aarch64
             runner: ubuntu-24.04-arm
             astrein-archive: astrein-linux-aarch64.tar.gz
-            astrein-sha256: '8e1ceedcb16b1d7e0889f8827872b45dabc087e85e358e2190ba8a44839be12b'
+            astrein-sha256: 'bab7501555d91f355bca797a38af16d9e01067591abf20b0147a8a0985558e33'
 
     steps:
       - name: 'Checkout repository'
