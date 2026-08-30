@@ -16,7 +16,7 @@ jobs:
     name: 'Generate target metadata (${{ matrix.target }})'
     runs-on: ${{ matrix.runner }}
     env:
-      ASTREIN_VERSION: '1.2.0'
+      ASTREIN_VERSION: '2.0.0'
       ASTREIN_SHA256: ${{ matrix.astrein-sha256 }}
 
     strategy:
@@ -27,13 +27,13 @@ jobs:
             arch: x86_64
             runner: ubuntu-24.04
             astrein-archive: astrein-linux-x86_64.tar.gz
-            astrein-sha256: 'cd0bb42f883322d9b7bbf1a34b57acfab83bcf78cf529a5cd122234fc8787582'
+            astrein-sha256: '5c7ece7b3ab76deb562e4152541c40c042bfe5964e93cef152d04448d92188f2'
 
           - target: aarch64-linux-gnu
             arch: aarch64
             runner: ubuntu-24.04-arm
             astrein-archive: astrein-linux-aarch64.tar.gz
-            astrein-sha256: '6e53ac2f5a8b341e7a49439129790f4b1b82d5073a98ddf44a189fe9a9ebf732'
+            astrein-sha256: '8e1ceedcb16b1d7e0889f8827872b45dabc087e85e358e2190ba8a44839be12b'
 
     steps:
       - name: 'Checkout repository'
