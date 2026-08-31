@@ -5,7 +5,7 @@
  * Usage with Deno
  *
  * ```ts
- * import { aarch64, x86_64 } from "jsr:@serial/cpp-bindings-linux/bin";
+ * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
  *
  * const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
  * const path = `./${binary.filename}`;
