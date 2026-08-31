@@ -1,7 +1,8 @@
 /**
  * Module that provides serialized binaries and FFI metadata.
  *
- * @example Deno
+ * @example
+ * Usage with Deno
  *
  * ```ts
  * import { aarch64, x86_64 } from "jsr:@serial/cpp-bindings-linux/bin";
@@ -20,11 +21,8 @@
  * library.close();
  * ```
  *
- * Run with `deno run --allow-write --allow-ffi example.ts`.
- *
- * @example Bun
- *
- * Install with `bunx jsr add @serial/cpp-bindings-linux`, then:
+ * @example
+ * Usage with Bun
  *
  * ```ts
  * import { dlopen } from "bun:ffi";
@@ -53,10 +51,8 @@
  * library.close();
  * ```
  *
- * @example Node.js
- *
- * Install with `npx jsr add @serial/cpp-bindings-linux` and
- * `npm install koffi`, then:
+ * @example
+ * Usage with Node.js
  *
  * ```js
  * import { writeFileSync } from "node:fs";
