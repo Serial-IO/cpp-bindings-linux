@@ -71,7 +71,8 @@ jobs:
 
       - name: 'Configure native metadata context'
         run: |
-          cmake -S . --build "build/ffi/${{ matrix.arch }}" \
+          cmake -S . \
+            -B "build/ffi/${{ matrix.arch }}" \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc-14 \
@@ -116,7 +117,8 @@ jobs:
 
       - name: 'Configure package context'
         run: |
-          cmake -S . -B build/package \
+          cmake -S . \
+            -B build/package \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc-14 \
@@ -178,7 +180,8 @@ jobs:
 
       - name: 'Configure portable release'
         run: |
-          cmake -S . --build build \
+          cmake -S . \
+            -B build \
             -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc \
@@ -206,14 +209,14 @@ jobs:
 
       - name: 'Upload test report'
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: warn
           name: test-report-${{ matrix.target }}
           path: build/test-report.xml
 
       - name: 'Upload binary'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: error
           name: libcpp_bindings_linux-${{ matrix.target }}
