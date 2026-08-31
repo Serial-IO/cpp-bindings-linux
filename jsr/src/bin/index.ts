@@ -1,19 +1,89 @@
 /**
  * Module that provides serialized binaries and FFI metadata.
  *
- * @example
- * Import the corresponding binary and write the file to disk.
+ * @example Deno
  *
  * ```ts
+ * import { aarch64, x86_64 } from "jsr:@serial/cpp-bindings-linux/bin";
+ *
+ * const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
+ * const path = `./${binary.filename}`;
+ *
+ * Deno.writeFileSync(path, Uint8Array.fromBase64(binary.data));
+ *
+ * const library = Deno.dlopen(path, {
+ *   serialClose: {
+ *     parameters: ["i64", "pointer"],
+ *     result: "i32",
+ *   },
+ * });
+ * library.close();
+ * ```
+ *
+ * Run with `deno run --allow-write --allow-ffi example.ts`.
+ *
+ * @example Bun
+ *
+ * Install with `bunx jsr add @serial/cpp-bindings-linux`, then:
+ *
+ * ```ts
+ * import { dlopen } from "bun:ffi";
+ * import { resolve } from "node:path";
  * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
  *
- * // Select this with the architecture API provided by your runtime.
- * const binary = x86_64;
+ * const binary = process.arch === "arm64"
+ *   ? aarch64
+ *   : process.arch === "x64"
+ *   ? x86_64
+ *   : undefined;
  *
- * // Decode `binary.data`, write it to `binary.filename`, and load it using
- * // your runtime's filesystem and native FFI APIs. The matching C API
- * // metadata, including struct definitions, is available as `binary.ffi`.
+ * if (!binary) {
+ *   throw new Error(`Unsupported architecture: ${process.arch}`);
+ * }
+ *
+ * const path = resolve(binary.filename);
+ * await Bun.write(path, Buffer.from(binary.data, "base64"));
+ *
+ * const library = dlopen(path, {
+ *   serialClose: {
+ *     args: ["i64", "ptr"],
+ *     returns: "i32",
+ *   },
+ * });
+ * library.close();
  * ```
+ *
+ * @example Node.js
+ *
+ * Install with `npx jsr add @serial/cpp-bindings-linux` and
+ * `npm install koffi`, then:
+ *
+ * ```js
+ * import { writeFileSync } from "node:fs";
+ * import { resolve } from "node:path";
+ * import koffi from "koffi";
+ * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
+ *
+ * const binary = process.arch === "arm64"
+ *   ? aarch64
+ *   : process.arch === "x64"
+ *   ? x86_64
+ *   : undefined;
+ *
+ * if (!binary) {
+ *   throw new Error(`Unsupported architecture: ${process.arch}`);
+ * }
+ *
+ * const path = resolve(binary.filename);
+ * writeFileSync(path, Buffer.from(binary.data, "base64"));
+ *
+ * const library = koffi.load(path);
+ * library.func("int serialClose(int64_t handle, void *error_callback)");
+ * library.unload();
+ * ```
+ *
+ * The matching C API metadata, including struct definitions, is available as
+ * `binary.ffi` in every runtime.
  * @module
  */
 
