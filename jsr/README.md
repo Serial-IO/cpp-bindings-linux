@@ -71,9 +71,9 @@ const path = `./${binary.filename}`;
 Deno.writeFileSync(path, Uint8Array.fromBase64(binary.data));
 
 const library = Deno.dlopen(path, {
-  serialClose: {
-    parameters: ["i64", "pointer"],
-    result: "i32",
+  serialOpen: {
+    parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"],
+    result: "i64",
   },
 });
 library.close();
@@ -114,9 +114,9 @@ const path = resolve(binary.filename);
 await Bun.write(path, Buffer.from(binary.data, "base64"));
 
 const library = dlopen(path, {
-  serialClose: {
-    args: ["i64", "ptr"],
-    returns: "i32",
+  serialOpen: {
+    args: ["ptr", "i32", "i32", "i32", "i32", "ptr"],
+    returns: "i64",
   },
 });
 library.close();
@@ -162,7 +162,14 @@ const path = resolve(binary.filename);
 writeFileSync(path, Buffer.from(binary.data, "base64"));
 
 const library = koffi.load(path);
-library.func("int serialClose(int64_t handle, void *error_callback)");
+library.func("serialOpen", "int64_t", [
+  "void *",
+  "int",
+  "int",
+  "int",
+  "int",
+  "void *",
+]);
 library.unload();
 ```
 
@@ -171,7 +178,7 @@ node example.mjs
 ```
 
 These examples verify that the native library can be loaded and that its
-`serialClose` symbol can be resolved. The matching `binary.ffi` value describes
+`serialOpen` symbol can be resolved. The matching `binary.ffi` value describes
 the complete set of symbols and structs for generating or configuring
 runtime-specific bindings.
 
