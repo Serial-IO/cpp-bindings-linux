@@ -1,7 +1,7 @@
 {
   "name": "@serial/cpp-bindings-linux",
   "version": "",
-  "description": "C++ Linux Bindings for the serial library",
+  "description": "Runtime-agnostic GNU/Linux serial FFI binaries and API metadata",
   "license": "LGPL-3.0-only",
   "exports": {
     "./bin": "./src/bin/index.ts"

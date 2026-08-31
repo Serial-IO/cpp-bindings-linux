@@ -3,9 +3,16 @@
 [![Build](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml/badge.svg)](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml)
 [![JSR](https://jsr.io/badges/@serial/cpp-bindings-linux)](https://jsr.io/@serial/cpp-bindings-linux)
 
-Linux shared library for serial communication. It implements the
-[`cpp-core`](https://github.com/Serial-IO/cpp-core) interface and provides functions for discovering, opening,
-configuring, reading from, and writing to serial ports.
+Runtime-agnostic Linux shared library for serial communication. It implements
+the [`cpp-core`](https://github.com/Serial-IO/cpp-core) interface and provides
+functions for discovering, opening, configuring, reading from, and writing to
+serial ports.
+
+The library exposes a C-compatible ABI and can be used from any language or
+runtime that can load a GNU/Linux shared library and call C functions. Release
+artifacts include machine-readable FFI metadata for generating runtime-specific
+adapters, including exported symbols, types, callbacks, structs, defaults, and
+API documentation.
 
 ## Requirements
 
@@ -34,6 +41,31 @@ Official release and JSR artifacts are built for these GNU/Linux targets:
 | --- | --- | --- |
 | `x86_64-linux-gnu` | generic x86-64 | 2.28 |
 | `aarch64-linux-gnu` | ARMv8-A | 2.28 |
+
+### Binary compatibility
+
+The prebuilt binaries require **glibc 2.28 or newer**. Compatibility depends on
+the installed glibc version rather than the distribution name. Common release
+baselines are shown below for orientation:
+
+| Distribution | Release baseline |
+| --- | --- |
+| Debian | 10+ |
+| Ubuntu | 20.04 LTS+ |
+| RHEL / Rocky Linux / AlmaLinux | 8+ |
+| Fedora | 29+ |
+| openSUSE Leap | 15.x (not compatible by default) |
+
+Check the installed version with:
+
+```sh
+ldd --version
+```
+
+These versions indicate binary compatibility and do not imply that the listed
+distribution releases are still supported by their vendors.
+
+### Portable release builds
 
 The release builds statically include the GNU C++ and compiler runtimes. They
 still use the target system's glibc and therefore require glibc 2.28 or newer.
@@ -69,7 +101,9 @@ ctest --test-dir build --output-on-failure
 
 Tests that require a serial device use `SERIAL_TEST_PORT`. They are skipped when no suitable device is available.
 
-The optional Deno FFI smoke tests require Deno 2 and a built library:
+The optional runtime integration smoke tests currently use Deno 2 as their FFI
+test harness and require a built library. Deno is not required to consume the
+library from another compatible runtime:
 
 ```sh
 cd integration_tests
