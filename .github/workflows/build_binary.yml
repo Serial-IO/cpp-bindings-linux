@@ -12,27 +12,42 @@ on:
     branches: ['*']
 
 jobs:
+  setup-matrix:
+    name: 'Setup matrix'
+    runs-on: ubuntu-24.04
+    steps:
+      - id: setup-matrix
+        uses: druzsan/setup-matrix@v2
+        with:
+          matrix: |
+            include:
+              - runner: ubuntu-24.04
+                target: x86_64-linux-gnu
+                arch: x86_64
+                image: quay.io/pypa/manylinux_2_28_x86_64@sha256:4dc41da7df20400310c80d162a2fe2d2c2f3d9734d8dec20f6b9843711618deb
+
+              - runner: ubuntu-24.04-arm
+                target: aarch64-linux-gnu
+                arch: aarch64
+                image: quay.io/pypa/manylinux_2_28_aarch64@sha256:29a6ceb78de5b00494e6e7456a72782a4cb54238de102e7491d15fe47789b4d1
+
+    outputs:
+      matrix: ${{ steps.setup-matrix.outputs.matrix }}
+
   generate-target-metadata:
     name: 'Generate target metadata (${{ matrix.target }})'
+    needs: ['setup-matrix']
     runs-on: ${{ matrix.runner }}
     env:
       ASTREIN_VERSION: '2.0.0'
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-linux-gnu
-            arch: x86_64
-            runner: ubuntu-24.04
-
-          - target: aarch64-linux-gnu
-            arch: aarch64
-            runner: ubuntu-24.04-arm
+      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
 
     steps:
       - name: 'Checkout repository'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -56,7 +71,8 @@ jobs:
 
       - name: 'Configure native metadata context'
         run: |
-          cmake -S . -B "build/ffi/${{ matrix.arch }}" -G Ninja \
+          cmake -S . --build "build/ffi/${{ matrix.arch }}" \
+            -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc-14 \
             -DCMAKE_CXX_COMPILER=g++-14 \
@@ -70,7 +86,7 @@ jobs:
             --target cpp_bindings_linux_ffi_json
 
       - name: 'Upload target-specific FFI metadata'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: error
           name: cpp-bindings-linux-ffi-${{ matrix.target }}
@@ -82,7 +98,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 'Checkout repository'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -100,7 +116,8 @@ jobs:
 
       - name: 'Configure package context'
         run: |
-          cmake -S . -B build/package -G Ninja \
+          cmake -S . -B build/package \
+            -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc-14 \
             -DCMAKE_CXX_COMPILER=g++-14
@@ -125,14 +142,14 @@ jobs:
           fi
 
       - name: 'Download target-specific FFI metadata'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: cpp-bindings-linux-ffi-*
           path: dist/ffi
           merge-multiple: true
 
       - name: 'Upload combined FFI metadata'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: error
           name: cpp-bindings-linux-ffi
@@ -144,33 +161,25 @@ jobs:
 
   build-binary:
     name: 'Build binary (${{ matrix.target }})'
+    needs: ['setup-matrix']
     runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-linux-gnu
-            runner: ubuntu-24.04
-            image: quay.io/pypa/manylinux_2_28_x86_64@sha256:4dc41da7df20400310c80d162a2fe2d2c2f3d9734d8dec20f6b9843711618deb
-            artifact: libcpp_bindings_linux-x86_64-linux-gnu
-          
-          - target: aarch64-linux-gnu
-            runner: ubuntu-24.04-arm
-            image: quay.io/pypa/manylinux_2_28_aarch64@sha256:29a6ceb78de5b00494e6e7456a72782a4cb54238de102e7491d15fe47789b4d1
-            artifact: libcpp_bindings_linux-aarch64-linux-gnu
+      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
 
     steps:
       - name: 'Checkout repository'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: 'Configure portable release'
         run: |
-          cmake -S . -B build -G "Unix Makefiles" \
+          cmake -S . --build build \
+            -G "Unix Makefiles" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=gcc \
             -DCMAKE_CXX_COMPILER=g++ \
@@ -207,7 +216,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
-          name: ${{ matrix.artifact }}
+          name: libcpp_bindings_linux-${{ matrix.target }}
           path: dist/${{ matrix.target }}/libcpp_bindings_linux.so
 
   test-unit-cpp:
@@ -223,41 +232,45 @@ jobs:
 
   create-release:
     name: 'Create GitHub release'
-    needs: ['generate-metadata', 'build-binary', 'test-unit-cpp']
+    needs:
+      - setup-matrix
+      - generate-metadata
+      - build-binary
+      - test-unit-cpp
+
     if: github.ref_type == 'tag' && needs.generate-metadata.outputs.is_valid_package_version == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
 
     steps:
-      - name: 'Download x86-64 binary'
-        uses: actions/download-artifact@v4
+      - name: 'Download binaries'
+        uses: actions/download-artifact@v8
         with:
-          name: libcpp_bindings_linux-x86_64-linux-gnu
-          path: release/x86_64
-
-      - name: 'Download AArch64 binary'
-        uses: actions/download-artifact@v4
-        with:
-          name: libcpp_bindings_linux-aarch64-linux-gnu
-          path: release/aarch64
+          pattern: libcpp_bindings_linux-*
+          path: release/binaries
 
       - name: 'Download FFI metadata'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: cpp-bindings-linux-ffi
           path: release/ffi
 
       - name: 'Name release assets'
+        env:
+          MATRIX_JSON: ${{ needs.setup-matrix.outputs.matrix }}
+
         run: |
-          mv release/x86_64/libcpp_bindings_linux.so \
-            release/libcpp_bindings_linux-x86_64-linux-gnu.so
-          mv release/aarch64/libcpp_bindings_linux.so \
-            release/libcpp_bindings_linux-aarch64-linux-gnu.so
-          mv release/ffi/x86_64.ffi.json \
-            release/cpp_bindings_linux-x86_64-linux-gnu.ffi.json
-          mv release/ffi/aarch64.ffi.json \
-            release/cpp_bindings_linux-aarch64-linux-gnu.ffi.json
+          mkdir -p release/assets
+          echo "${MATRIX_JSON}" | jq -c '.include[]' | while read -r entry; do
+            target=$(jq -r '.target' <<< "${entry}")
+            arch=$(jq -r '.arch' <<< "${entry}")
+
+            cp "release/binaries/libcpp_bindings_linux-${target}/libcpp_bindings_linux.so" \
+              "release/assets/libcpp_bindings_linux-${target}.so"
+            cp "release/ffi/${arch}.ffi.json" \
+              "release/assets/cpp_bindings_linux-${target}.ffi.json"
+          done
 
       - name: 'Create GitHub release'
         uses: softprops/action-gh-release@v2
@@ -265,15 +278,16 @@ jobs:
           name: 'v${{ needs.generate-metadata.outputs.package_version }}'
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: |
-            release/libcpp_bindings_linux-x86_64-linux-gnu.so
-            release/libcpp_bindings_linux-aarch64-linux-gnu.so
-            release/cpp_bindings_linux-x86_64-linux-gnu.ffi.json
-            release/cpp_bindings_linux-aarch64-linux-gnu.ffi.json
+          files: release/assets/*
 
   publish-jsr:
     name: 'Run: Publish JSR'
-    needs: ['generate-metadata', 'build-binary', 'test-unit-cpp']
+    needs: 
+      - 'setup-matrix'
+      - 'generate-metadata'
+      - 'build-binary'
+      - 'test-unit-cpp'
+
     uses: './.github/workflows/publish_jsr.yml'
     permissions:
       contents: read
@@ -282,6 +296,6 @@ jobs:
     with:
       publish: ${{ needs.generate-metadata.outputs.is_valid_package_version == 'true' }}
       version: ${{ needs.generate-metadata.outputs.package_version }}
-      x86-64-artifact-name: libcpp_bindings_linux-x86_64-linux-gnu
-      aarch64-artifact-name: libcpp_bindings_linux-aarch64-linux-gnu
+      matrix: ${{ needs.setup-matrix.outputs.matrix }}
+      artifact-name-prefix: libcpp_bindings_linux
       ffi-artifact-name: cpp-bindings-linux-ffi
