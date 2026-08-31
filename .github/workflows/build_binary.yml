@@ -17,7 +17,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       ASTREIN_VERSION: '2.0.0'
-      ASTREIN_SHA256: ${{ matrix.astrein-sha256 }}
 
     strategy:
       fail-fast: false
@@ -26,27 +25,16 @@ jobs:
           - target: x86_64-linux-gnu
             arch: x86_64
             runner: ubuntu-24.04
-            astrein-archive: astrein-linux-x86_64.tar.gz
-            astrein-sha256: 'c024f62f8bb4c7b5342249de5844d19276ae92293bf8cc7edf7475280503168e'
 
           - target: aarch64-linux-gnu
             arch: aarch64
             runner: ubuntu-24.04-arm
-            astrein-archive: astrein-linux-aarch64.tar.gz
-            astrein-sha256: 'bab7501555d91f355bca797a38af16d9e01067591abf20b0147a8a0985558e33'
 
     steps:
       - name: 'Checkout repository'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: 'Validate ASTrein checksum'
-        run: |
-          if [[ ! "${ASTREIN_SHA256}" =~ ^[[:xdigit:]]{64}$ ]]; then
-            echo "Set the SHA-256 for ${{ matrix.astrein-archive }} after ASTrein v${ASTREIN_VERSION} is released." >&2
-            exit 1
-          fi
 
       - name: 'Install native compiler'
         run: |
@@ -55,19 +43,11 @@ jobs:
             gcc-14 \
             g++-14
 
-      - name: 'Download ASTrein'
-        run: |
-          curl --fail --location \
-            --output "${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
-            "https://github.com/Katze719/ASTrein/releases/download/v${ASTREIN_VERSION}/${{ matrix.astrein-archive }}"
-          echo "${ASTREIN_SHA256} ${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
-            | sha256sum --check -
-          
-          mkdir -p "${RUNNER_TEMP}/astrein"
-          tar -xzf "${RUNNER_TEMP}/${{ matrix.astrein-archive }}" \
-            -C "${RUNNER_TEMP}/astrein" \
-            --strip-components=1
-          "${RUNNER_TEMP}/astrein/bin/astrein" --version
+      - name: 'Setup ASTrein'
+        id: astrein
+        uses: Katze719/setup-astrein@v1
+        with:
+          version: ${{ env.ASTREIN_VERSION }}
 
       - name: 'Setup CMake'
         uses: jwlawson/actions-setup-cmake@v2
@@ -81,7 +61,7 @@ jobs:
             -DCMAKE_C_COMPILER=gcc-14 \
             -DCMAKE_CXX_COMPILER=g++-14 \
             -DCPP_BINDINGS_LINUX_ENABLE_FFI_JSON_EXPORT=ON \
-            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${RUNNER_TEMP}/astrein/bin/astrein" \
+            -DCPP_BINDINGS_LINUX_ASTREIN_EXECUTABLE="${{ steps.astrein.outputs.path }}" \
             -DCPP_BINDINGS_LINUX_FFI_JSON_OUTPUT="${GITHUB_WORKSPACE}/dist/ffi/${{ matrix.arch }}.ffi.json"
 
       - name: 'Generate metadata'
