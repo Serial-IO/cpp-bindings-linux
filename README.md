@@ -3,9 +3,16 @@
 [![Build](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml/badge.svg)](https://github.com/Serial-IO/cpp-bindings-linux/actions/workflows/build_binary.yml)
 [![JSR](https://jsr.io/badges/@serial/cpp-bindings-linux)](https://jsr.io/@serial/cpp-bindings-linux)
 
-Linux shared library for serial communication. It implements the
-[`cpp-core`](https://github.com/Serial-IO/cpp-core) interface and provides functions for discovering, opening,
-configuring, reading from, and writing to serial ports.
+Runtime-agnostic Linux shared library for serial communication. It implements
+the [`cpp-core`](https://github.com/Serial-IO/cpp-core) interface and provides
+functions for discovering, opening, configuring, reading from, and writing to
+serial ports.
+
+The library exposes a C-compatible ABI and can be used from any language or
+runtime that can load a GNU/Linux shared library and call C functions. Release
+artifacts include machine-readable FFI metadata for generating runtime-specific
+adapters, including exported symbols, types, callbacks, structs, defaults, and
+API documentation.
 
 ## Requirements
 
@@ -69,7 +76,9 @@ ctest --test-dir build --output-on-failure
 
 Tests that require a serial device use `SERIAL_TEST_PORT`. They are skipped when no suitable device is available.
 
-The optional Deno FFI smoke tests require Deno 2 and a built library:
+The optional runtime integration smoke tests currently use Deno 2 as their FFI
+test harness and require a built library. Deno is not required to consume the
+library from another compatible runtime:
 
 ```sh
 cd integration_tests

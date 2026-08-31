@@ -7,14 +7,12 @@
  * ```ts
  * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
  *
- * const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
+ * // Select this with the architecture API provided by your runtime.
+ * const binary = x86_64;
  *
- * Deno.writeFileSync(
- *   `./${binary.filename}`,
- *   Uint8Array.fromBase64(binary.data),
- * );
- *
- * // The matching FFI metadata is available as `binary.ffi`.
+ * // Decode `binary.data`, write it to `binary.filename`, and load it using
+ * // your runtime's filesystem and native FFI APIs. The matching C API
+ * // metadata, including struct definitions, is available as `binary.ffi`.
  * ```
  * @module
  */
@@ -28,15 +26,17 @@ import x86_64ffi from "../../bin/x86_64/ffi.json" with { type: "json" };
  * The serialized `aarch64-linux-gnu` shared library and its FFI metadata.
  *
  * The library targets ARMv8-A and requires glibc 2.28 or newer. Decode `data`
- * from base64 and write it to `filename` before loading it with `Deno.dlopen`.
+ * from base64, write it to `filename`, and load it using the filesystem and
+ * native FFI APIs provided by your runtime.
  */
 const aarch64 = {
   ...aarch64Library,
   /**
    * ASTrein-generated metadata describing the library's exported C API.
    *
-   * It contains symbols, parameter and return types, callbacks, default
-   * values, and API documentation for generating FFI adapters.
+   * It contains symbols, parameter and return types, callbacks, struct
+   * definitions, default values, and API documentation for generating
+   * runtime-specific FFI adapters.
    */
   ffi: aarch64ffi,
 };
@@ -46,15 +46,16 @@ const aarch64 = {
  *
  * The library targets the generic x86-64 baseline and requires glibc 2.28 or
  * newer. Decode `data` from base64 and write it to `filename` before loading
- * it with `Deno.dlopen`.
+ * it using the filesystem and native FFI APIs provided by your runtime.
  */
 const x86_64 = {
   ...x86_64Library,
   /**
    * ASTrein-generated metadata describing the library's exported C API.
    *
-   * It contains symbols, parameter and return types, callbacks, default
-   * values, and API documentation for generating FFI adapters.
+   * It contains symbols, parameter and return types, callbacks, struct
+   * definitions, default values, and API documentation for generating
+   * runtime-specific FFI adapters.
    */
   ffi: x86_64ffi,
 };
