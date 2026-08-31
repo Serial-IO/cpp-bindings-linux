@@ -24,13 +24,38 @@ import aarch64ffi from "../../bin/aarch64/ffi.json" with { type: "json" };
 import x86_64Library from "../../bin/x86_64/library.json" with { type: "json" };
 import x86_64ffi from "../../bin/x86_64/ffi.json" with { type: "json" };
 
+/**
+ * The serialized `aarch64-linux-gnu` shared library and its FFI metadata.
+ *
+ * The library targets ARMv8-A and requires glibc 2.28 or newer. Decode `data`
+ * from base64 and write it to `filename` before loading it with `Deno.dlopen`.
+ */
 const aarch64 = {
   ...aarch64Library,
+  /**
+   * ASTrein-generated metadata describing the library's exported C API.
+   *
+   * It contains symbols, parameter and return types, callbacks, default
+   * values, and API documentation for generating FFI adapters.
+   */
   ffi: aarch64ffi,
 };
 
+/**
+ * The serialized `x86_64-linux-gnu` shared library and its FFI metadata.
+ *
+ * The library targets the generic x86-64 baseline and requires glibc 2.28 or
+ * newer. Decode `data` from base64 and write it to `filename` before loading
+ * it with `Deno.dlopen`.
+ */
 const x86_64 = {
   ...x86_64Library,
+  /**
+   * ASTrein-generated metadata describing the library's exported C API.
+   *
+   * It contains symbols, parameter and return types, callbacks, default
+   * values, and API documentation for generating FFI adapters.
+   */
   ffi: x86_64ffi,
 };
 
