@@ -42,6 +42,31 @@ Official release and JSR artifacts are built for these GNU/Linux targets:
 | `x86_64-linux-gnu` | generic x86-64 | 2.28 |
 | `aarch64-linux-gnu` | ARMv8-A | 2.28 |
 
+### Binary compatibility
+
+The prebuilt binaries require **glibc 2.28 or newer**. Compatibility depends on
+the installed glibc version rather than the distribution name. Common release
+baselines are shown below for orientation:
+
+| Distribution | Release baseline |
+| --- | --- |
+| Debian | 10+ |
+| Ubuntu | 20.04 LTS+ |
+| RHEL / Rocky Linux / AlmaLinux | 8+ |
+| Fedora | 29+ |
+| openSUSE Leap | 15.x (not compatible by default) |
+
+Check the installed version with:
+
+```sh
+ldd --version
+```
+
+These versions indicate binary compatibility and do not imply that the listed
+distribution releases are still supported by their vendors.
+
+### Portable release builds
+
 The release builds statically include the GNU C++ and compiler runtimes. They
 still use the target system's glibc and therefore require glibc 2.28 or newer.
 To reproduce the portable release configuration for the host architecture:

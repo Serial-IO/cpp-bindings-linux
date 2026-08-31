@@ -16,6 +16,31 @@ The package contains portable binaries for `x86_64-linux-gnu` and
 `aarch64-linux-gnu`, both requiring glibc 2.28 or newer. The x86-64 artifact
 uses the generic x86-64 baseline.
 
+## Binary compatibility
+
+The prebuilt binaries require **glibc 2.28 or newer**. Compatibility depends on
+the installed glibc version rather than the distribution name. Common release
+baselines are shown below for orientation:
+
+| Distribution | Release baseline |
+| --- | --- |
+| Debian | 10+ |
+| Ubuntu | 20.04 LTS+ |
+| RHEL / Rocky Linux / AlmaLinux | 8+ |
+| Fedora | 29+ |
+| openSUSE Leap | 15.x (not compatible by default) |
+
+Check the installed version with:
+
+```sh
+ldd --version
+```
+
+These versions indicate binary compatibility and do not imply that the listed
+distribution releases are still supported by their vendors.
+
+## FFI metadata
+
 It also includes cpp-core FFI API metadata generated with
 [ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64/ffi.json` and
 `bin/aarch64/ffi.json`. It describes the exported C symbols, parameter and
