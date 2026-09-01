@@ -16,18 +16,18 @@ on:
         required: true
         type: string
 
-      x86-64-artifact-name:
-        description: 'Name of the x86-64 binary artifact'
+      matrix:
+        description: 'JSON matrix (same shape as setup-matrix output) describing each target/arch'
         required: true
         type: string
 
-      aarch64-artifact-name:
-        description: 'Name of the AArch64 binary artifact'
+      artifact-name-prefix:
+        description: 'Common prefix of the per-target binary artifact names (artifact is "<prefix>-<target>")'
         required: true
         type: string
 
       ffi-artifact-name:
-        description: 'Name of the target-specific FFI metadata artifact'
+        description: 'Name of the combined FFI metadata artifact'
         required: true
         type: string
 
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout repository'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -49,49 +49,44 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: '2.x'
-      
-      - name: 'Download x86-64 binary'
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ inputs.x86-64-artifact-name }}
-          path: 'artifacts/x86_64'
 
-      - name: 'Download AArch64 binary'
-        uses: actions/download-artifact@v4
+      - name: 'Download binaries'
+        uses: actions/download-artifact@v8
         with:
-          name: ${{ inputs.aarch64-artifact-name }}
-          path: 'artifacts/aarch64'
+          pattern: '${{ inputs.artifact-name-prefix }}-*'
+          path: artifacts/binaries
 
       - name: 'Download FFI metadata'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.ffi-artifact-name }}
-          path: 'artifacts/ffi'
+          path: artifacts/ffi
 
       - name: 'Prepare files for JSR'
+        env:
+          MATRIX_JSON: ${{ inputs.matrix }}
+          PREFIX: ${{ inputs.artifact-name-prefix }}
         run: |
-          mkdir -p ./jsr/bin/x86_64
-          cp ./artifacts/x86_64/libcpp_bindings_linux.so ./jsr/bin/x86_64/library.so
-          cp ./artifacts/ffi/x86_64.ffi.json ./jsr/bin/x86_64/ffi.json
-          
-          mkdir -p ./jsr/bin/aarch64
-          cp ./artifacts/aarch64/libcpp_bindings_linux.so ./jsr/bin/aarch64/library.so
-          cp ./artifacts/ffi/aarch64.ffi.json ./jsr/bin/aarch64/ffi.json
+          echo "${MATRIX_JSON}" | jq -c '.include[]' | while read -r entry; do
+            target=$(jq -r '.target' <<< "${entry}")
+            arch=$(jq -r '.arch' <<< "${entry}")
 
-          ./jsr/scripts/binary_to_json.sh \
-            ./jsr/bin/x86_64/library.so \
-            ./jsr/bin/x86_64/library.json \
-            x86_64-linux-gnu
+            mkdir -p "./jsr/bin/${arch}"
+            cp "./artifacts/binaries/${PREFIX}-${target}/libcpp_bindings_linux.so" \
+              "./jsr/bin/${arch}/library.so"
+            cp "./artifacts/ffi/${arch}.ffi.json" \
+              "./jsr/bin/${arch}/ffi.json"
 
-          ./jsr/scripts/binary_to_json.sh \
-            ./jsr/bin/aarch64/library.so \
-            ./jsr/bin/aarch64/library.json \
-            aarch64-linux-gnu
+            ./jsr/scripts/binary_to_json.sh \
+              "./jsr/bin/${arch}/library.so" \
+              "./jsr/bin/${arch}/library.json" \
+              "${target}"
+          done
 
           ./jsr/scripts/set_version.sh \
             jsr/jsr.json \
             "${{ inputs.version }}"
-      
+
       - name: 'Publish package to JSR (normal)'
         if: inputs.publish
         working-directory: jsr
