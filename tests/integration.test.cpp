@@ -47,12 +47,15 @@ TEST_F(SerialIntegrationTest, ReadWritePipeRoundTrip)
 
     const char *test_message = "Hello";
     const int msg_len = static_cast<int>(strlen(test_message));
-    int write_result = serialWrite(pipefd[1], test_message, msg_len, 100, 0, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config0{100, 0};
+    int write_result = serialWrite(pipefd[1], reinterpret_cast<const std::uint8_t *>(test_message), msg_len,
+                                   &timeout_config0, error_callback);
     EXPECT_EQ(write_result, msg_len);
 
     std::array<char, 10> read_buffer{};
-    int read_result =
-        serialRead(pipefd[0], read_buffer.data(), static_cast<int>(read_buffer.size()), 100, 0, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config1{100, 0};
+    int read_result = serialRead(pipefd[0], reinterpret_cast<std::uint8_t *>(read_buffer.data()),
+                                 static_cast<int>(read_buffer.size()), &timeout_config1, error_callback);
     EXPECT_EQ(read_result, msg_len);
     EXPECT_EQ(std::string(read_buffer.data()), std::string(test_message));
 
@@ -71,12 +74,17 @@ TEST_F(SerialIntegrationTest, MultipleWrites)
     const char *msg1 = "Hello";
     const char *msg2 = "World";
 
-    serialWrite(pipefd[1], msg1, static_cast<int>(strlen(msg1)), 100, 0, error_callback);
-    serialWrite(pipefd[1], msg2, static_cast<int>(strlen(msg2)), 100, 0, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config2{100, 0};
+    serialWrite(pipefd[1], reinterpret_cast<const std::uint8_t *>(msg1), static_cast<int>(strlen(msg1)),
+                &timeout_config2, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config3{100, 0};
+    serialWrite(pipefd[1], reinterpret_cast<const std::uint8_t *>(msg2), static_cast<int>(strlen(msg2)),
+                &timeout_config3, error_callback);
 
     std::array<char, 20> read_buffer{};
-    int read_result =
-        serialRead(pipefd[0], read_buffer.data(), static_cast<int>(read_buffer.size()), 100, 0, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config4{100, 0};
+    int read_result = serialRead(pipefd[0], reinterpret_cast<std::uint8_t *>(read_buffer.data()),
+                                 static_cast<int>(read_buffer.size()), &timeout_config4, error_callback);
     EXPECT_GE(read_result, 0);
 
     close(pipefd[0]);
@@ -89,10 +97,14 @@ TEST_F(SerialIntegrationTest, CloseAfterOperations)
     ASSERT_EQ(pipe(pipefd.data()), 0);
 
     const char *test_data = "test";
-    serialWrite(pipefd[1], test_data, static_cast<int>(strlen(test_data)), 100, 0, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config5{100, 0};
+    serialWrite(pipefd[1], reinterpret_cast<const std::uint8_t *>(test_data), static_cast<int>(strlen(test_data)),
+                &timeout_config5, error_callback);
 
     std::array<char, 10> buffer{};
-    serialRead(pipefd[0], buffer.data(), static_cast<int>(buffer.size()), 100, 0, error_callback);
+    const cpp_core::SerialTimeoutConfig timeout_config6{100, 0};
+    serialRead(pipefd[0], reinterpret_cast<std::uint8_t *>(buffer.data()), static_cast<int>(buffer.size()),
+               &timeout_config6, error_callback);
 
     int close_result1 = serialClose(pipefd[0], error_callback);
     int close_result2 = serialClose(pipefd[1], error_callback);

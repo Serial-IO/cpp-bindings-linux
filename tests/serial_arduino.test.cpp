@@ -3,7 +3,6 @@
 #include <cpp_core/interface/serial_clear_buffer_in.h>
 #include <cpp_core/interface/serial_clear_buffer_out.h>
 #include <cpp_core/interface/serial_close.h>
-#include <cpp_core/interface/serial_drain.h>
 #include <cpp_core/interface/serial_get_baudrate.h>
 #include <cpp_core/interface/serial_get_data_bits.h>
 #include <cpp_core/interface/serial_get_flow_control.h>
@@ -15,8 +14,6 @@
 #include <cpp_core/interface/serial_out_bytes_total.h>
 #include <cpp_core/interface/serial_out_bytes_waiting.h>
 #include <cpp_core/interface/serial_read.h>
-#include <cpp_core/interface/serial_read_line.h>
-#include <cpp_core/interface/serial_read_until.h>
 #include <cpp_core/interface/serial_read_until_sequence.h>
 #include <cpp_core/interface/serial_set_baudrate.h>
 #include <cpp_core/interface/serial_set_data_bits.h>
@@ -25,6 +22,7 @@
 #include <cpp_core/interface/serial_set_read_callback.h>
 #include <cpp_core/interface/serial_set_stop_bits.h>
 #include <cpp_core/interface/serial_set_write_callback.h>
+#include <cpp_core/interface/serial_wait_for_drain.h>
 #include <cpp_core/interface/serial_write.h>
 #include <cpp_core/status_code.h>
 
@@ -91,8 +89,9 @@ class SerialArduinoTest : public ::testing::Test
     {
         const char *env_port = std::getenv("SERIAL_TEST_PORT"); // NOLINT(concurrency-mt-unsafe)
         const char *selected_port = (env_port != nullptr && env_port[0] != '\0') ? env_port : "/dev/ttyUSB0";
-        handle_ =
-            serialOpen(const_cast<void *>(static_cast<const void *>(selected_port)), kDefaultBaudrate, 8, 0, 0, nullptr);
+        const cpp_core::SerialConfig config0{kDefaultBaudrate, cpp_core::DataBits::kEight, cpp_core::Parity::kNone,
+                                             cpp_core::StopBits::kOne, cpp_core::FlowControl::kNone};
+        handle_ = serialOpen(selected_port, &config0, nullptr);
 
         if (handle_ <= 0)
         {
@@ -148,8 +147,9 @@ class SerialArduinoTest : public ::testing::Test
 
         while (total_read < expected_bytes && std::chrono::steady_clock::now() < deadline)
         {
-            const int chunk =
-                serialRead(handle_, destination + total_read, expected_bytes - total_read, kShortReadTimeoutMs, 1, nullptr);
+            const cpp_core::SerialTimeoutConfig timeout_config1{kShortReadTimeoutMs, 1};
+            const int chunk = serialRead(handle_, reinterpret_cast<std::uint8_t *>(destination + total_read),
+                                         expected_bytes - total_read, &timeout_config1, nullptr);
             if (chunk < 0)
             {
                 return chunk;
@@ -173,9 +173,11 @@ class SerialArduinoTest : public ::testing::Test
         const int message_size = static_cast<int>(message.size());
         ASSERT_GT(message_size, 0);
 
-        const int written = serialWrite(handle_, message.data(), message_size, 1000, 1, nullptr);
+        const cpp_core::SerialTimeoutConfig timeout_config2{1000, 1};
+        const int written = serialWrite(handle_, reinterpret_cast<const std::uint8_t *>(message.data()), message_size,
+                                        &timeout_config2, nullptr);
         ASSERT_EQ(written, message_size) << "Failed to write full message";
-        ASSERT_EQ(serialDrain(handle_, nullptr), kSuccess);
+        ASSERT_EQ(serialWaitForDrain(handle_, nullptr), kSuccess);
 
         const int waiting = waitForAvailableBytes(message_size, kEchoTimeoutMs);
         ASSERT_GE(waiting, message_size) << "Timed out waiting for echoed bytes";
@@ -216,7 +218,9 @@ TEST_F(SerialArduinoTest, ReadTimeoutReturnsZeroWhenNoDataIsPending)
     ASSERT_EQ(serialClearBufferIn(handle_, nullptr), kSuccess);
 
     std::array<char, 256> buffer{};
-    const int read_bytes = serialRead(handle_, buffer.data(), static_cast<int>(buffer.size()), 100, 1, nullptr);
+    const cpp_core::SerialTimeoutConfig timeout_config3{100, 1};
+    const int read_bytes = serialRead(handle_, reinterpret_cast<std::uint8_t *>(buffer.data()),
+                                      static_cast<int>(buffer.size()), &timeout_config3, nullptr);
     EXPECT_EQ(read_bytes, 0);
 }
 
@@ -225,12 +229,16 @@ TEST_F(SerialArduinoTest, ReadLineStopsAtNewline)
     ASSERT_EQ(serialClearBufferIn(handle_, nullptr), kSuccess);
 
     constexpr std::string_view message = "Line helper test\n";
-    ASSERT_EQ(serialWrite(handle_, message.data(), static_cast<int>(message.size()), 1000, 1, nullptr),
+    const cpp_core::SerialTimeoutConfig timeout_config4{1000, 1};
+    ASSERT_EQ(serialWrite(handle_, reinterpret_cast<const std::uint8_t *>(message.data()),
+                          static_cast<int>(message.size()), &timeout_config4, nullptr),
               static_cast<int>(message.size()));
 
     std::array<char, 256> buffer{};
-    const int read_bytes =
-        serialReadLine(handle_, buffer.data(), static_cast<int>(buffer.size()), kEchoTimeoutMs, 1, nullptr);
+    const cpp_core::SerialTimeoutConfig timeout_config5{kEchoTimeoutMs, 1};
+    const int read_bytes = serialReadUntilSequence(handle_, reinterpret_cast<std::uint8_t *>(buffer.data()),
+                                                   static_cast<int>(buffer.size()), &timeout_config5,
+                                                   reinterpret_cast<const std::uint8_t *>("\n"), 1, nullptr);
 
     ASSERT_EQ(read_bytes, static_cast<int>(message.size()));
     EXPECT_EQ(std::string_view(buffer.data(), static_cast<std::size_t>(read_bytes)), message);
@@ -243,12 +251,16 @@ TEST_F(SerialArduinoTest, ReadUntilStopsAtRequestedByte)
     constexpr std::string_view message = "Echo until!";
     constexpr char terminator = '!';
 
-    ASSERT_EQ(serialWrite(handle_, message.data(), static_cast<int>(message.size()), 1000, 1, nullptr),
+    const cpp_core::SerialTimeoutConfig timeout_config6{1000, 1};
+    ASSERT_EQ(serialWrite(handle_, reinterpret_cast<const std::uint8_t *>(message.data()),
+                          static_cast<int>(message.size()), &timeout_config6, nullptr),
               static_cast<int>(message.size()));
 
     std::array<char, 256> buffer{};
-    const int read_bytes = serialReadUntil(handle_, buffer.data(), static_cast<int>(buffer.size()), kEchoTimeoutMs, 1,
-                                           const_cast<char *>(&terminator), nullptr);
+    const cpp_core::SerialTimeoutConfig timeout_config7{kEchoTimeoutMs, 1};
+    const int read_bytes = serialReadUntilSequence(
+        handle_, reinterpret_cast<std::uint8_t *>(buffer.data()), static_cast<int>(buffer.size()), &timeout_config7,
+        reinterpret_cast<const std::uint8_t *>(const_cast<char *>(&terminator)), 1, nullptr);
 
     ASSERT_EQ(read_bytes, static_cast<int>(message.size()));
     EXPECT_EQ(std::string_view(buffer.data(), static_cast<std::size_t>(read_bytes)), message);
@@ -261,12 +273,16 @@ TEST_F(SerialArduinoTest, ReadUntilSequenceStopsAtRequestedSuffix)
     constexpr std::string_view message = "prefix-END";
     char sequence[] = "END";
 
-    ASSERT_EQ(serialWrite(handle_, message.data(), static_cast<int>(message.size()), 1000, 1, nullptr),
+    const cpp_core::SerialTimeoutConfig timeout_config8{1000, 1};
+    ASSERT_EQ(serialWrite(handle_, reinterpret_cast<const std::uint8_t *>(message.data()),
+                          static_cast<int>(message.size()), &timeout_config8, nullptr),
               static_cast<int>(message.size()));
 
     std::array<char, 256> buffer{};
-    const int read_bytes = serialReadUntilSequence(handle_, buffer.data(), static_cast<int>(buffer.size()),
-                                                   kEchoTimeoutMs, 1, sequence, nullptr);
+    const cpp_core::SerialTimeoutConfig timeout_config9{kEchoTimeoutMs, 1};
+    const int read_bytes = serialReadUntilSequence(handle_, reinterpret_cast<std::uint8_t *>(buffer.data()),
+                                                   static_cast<int>(buffer.size()), &timeout_config9,
+                                                   reinterpret_cast<const std::uint8_t *>(sequence), 3, nullptr);
 
     ASSERT_EQ(read_bytes, static_cast<int>(message.size()));
     EXPECT_EQ(std::string_view(buffer.data(), static_cast<std::size_t>(read_bytes)), message);
@@ -293,7 +309,9 @@ TEST_F(SerialArduinoTest, CanObserveAndClearPendingInput)
     ASSERT_EQ(serialClearBufferIn(handle_, nullptr), kSuccess);
 
     constexpr std::string_view message = "Buffered input\n";
-    ASSERT_EQ(serialWrite(handle_, message.data(), static_cast<int>(message.size()), 1000, 1, nullptr),
+    const cpp_core::SerialTimeoutConfig timeout_config10{1000, 1};
+    ASSERT_EQ(serialWrite(handle_, reinterpret_cast<const std::uint8_t *>(message.data()),
+                          static_cast<int>(message.size()), &timeout_config10, nullptr),
               static_cast<int>(message.size()));
 
     const int waiting = waitForAvailableBytes(static_cast<int>(message.size()), kEchoTimeoutMs);
@@ -304,7 +322,10 @@ TEST_F(SerialArduinoTest, CanObserveAndClearPendingInput)
     EXPECT_EQ(serialInBytesWaiting(handle_, nullptr), 0);
 
     std::array<char, 64> buffer{};
-    EXPECT_EQ(serialRead(handle_, buffer.data(), static_cast<int>(buffer.size()), 100, 1, nullptr), 0);
+    const cpp_core::SerialTimeoutConfig timeout_config11{100, 1};
+    EXPECT_EQ(serialRead(handle_, reinterpret_cast<std::uint8_t *>(buffer.data()), static_cast<int>(buffer.size()),
+                         &timeout_config11, nullptr),
+              0);
 }
 
 TEST_F(SerialArduinoTest, CanRoundTripLineSettingsAndRecoverCommunication)
@@ -315,35 +336,35 @@ TEST_F(SerialArduinoTest, CanRoundTripLineSettingsAndRecoverCommunication)
     }
 
     EXPECT_EQ(serialGetBaudrate(handle_, nullptr), kDefaultBaudrate);
-    EXPECT_EQ(serialGetDataBits(handle_, nullptr), 8);
-    EXPECT_EQ(serialGetParity(handle_, nullptr), 0);
-    EXPECT_EQ(serialGetStopBits(handle_, nullptr), 0);
-    EXPECT_EQ(serialGetFlowControl(handle_, nullptr), 0);
+    EXPECT_EQ(serialGetDataBits(handle_, nullptr), cpp_core::DataBits::kEight);
+    EXPECT_EQ(serialGetParity(handle_, nullptr), cpp_core::Parity::kNone);
+    EXPECT_EQ(serialGetStopBits(handle_, nullptr), cpp_core::StopBits::kOne);
+    EXPECT_EQ(serialGetFlowControl(handle_, nullptr), cpp_core::FlowControl::kNone);
 
     ASSERT_EQ(serialSetBaudrate(handle_, 57600, nullptr), kSuccess);
     EXPECT_EQ(serialGetBaudrate(handle_, nullptr), 57600);
     ASSERT_EQ(serialSetBaudrate(handle_, kDefaultBaudrate, nullptr), kSuccess);
     EXPECT_EQ(serialGetBaudrate(handle_, nullptr), kDefaultBaudrate);
 
-    ASSERT_EQ(serialSetDataBits(handle_, 7, nullptr), kSuccess);
-    EXPECT_EQ(serialGetDataBits(handle_, nullptr), 7);
-    ASSERT_EQ(serialSetDataBits(handle_, 8, nullptr), kSuccess);
-    EXPECT_EQ(serialGetDataBits(handle_, nullptr), 8);
+    ASSERT_EQ(serialSetDataBits(handle_, cpp_core::DataBits::kSeven, nullptr), kSuccess);
+    EXPECT_EQ(serialGetDataBits(handle_, nullptr), cpp_core::DataBits::kSeven);
+    ASSERT_EQ(serialSetDataBits(handle_, cpp_core::DataBits::kEight, nullptr), kSuccess);
+    EXPECT_EQ(serialGetDataBits(handle_, nullptr), cpp_core::DataBits::kEight);
 
-    ASSERT_EQ(serialSetParity(handle_, 2, nullptr), kSuccess);
-    EXPECT_EQ(serialGetParity(handle_, nullptr), 2);
-    ASSERT_EQ(serialSetParity(handle_, 0, nullptr), kSuccess);
-    EXPECT_EQ(serialGetParity(handle_, nullptr), 0);
+    ASSERT_EQ(serialSetParity(handle_, cpp_core::Parity::kOdd, nullptr), kSuccess);
+    EXPECT_EQ(serialGetParity(handle_, nullptr), cpp_core::Parity::kOdd);
+    ASSERT_EQ(serialSetParity(handle_, cpp_core::Parity::kNone, nullptr), kSuccess);
+    EXPECT_EQ(serialGetParity(handle_, nullptr), cpp_core::Parity::kNone);
 
-    ASSERT_EQ(serialSetStopBits(handle_, 2, nullptr), kSuccess);
-    EXPECT_EQ(serialGetStopBits(handle_, nullptr), 2);
-    ASSERT_EQ(serialSetStopBits(handle_, 0, nullptr), kSuccess);
-    EXPECT_EQ(serialGetStopBits(handle_, nullptr), 0);
+    ASSERT_EQ(serialSetStopBits(handle_, cpp_core::StopBits::kTwo, nullptr), kSuccess);
+    EXPECT_EQ(serialGetStopBits(handle_, nullptr), cpp_core::StopBits::kTwo);
+    ASSERT_EQ(serialSetStopBits(handle_, cpp_core::StopBits::kOne, nullptr), kSuccess);
+    EXPECT_EQ(serialGetStopBits(handle_, nullptr), cpp_core::StopBits::kOne);
 
-    ASSERT_EQ(serialSetFlowControl(handle_, 2, nullptr), kSuccess);
-    EXPECT_EQ(serialGetFlowControl(handle_, nullptr), 2);
-    ASSERT_EQ(serialSetFlowControl(handle_, 0, nullptr), kSuccess);
-    EXPECT_EQ(serialGetFlowControl(handle_, nullptr), 0);
+    ASSERT_EQ(serialSetFlowControl(handle_, cpp_core::FlowControl::kXonXoff, nullptr), kSuccess);
+    EXPECT_EQ(serialGetFlowControl(handle_, nullptr), cpp_core::FlowControl::kXonXoff);
+    ASSERT_EQ(serialSetFlowControl(handle_, cpp_core::FlowControl::kNone, nullptr), kSuccess);
+    EXPECT_EQ(serialGetFlowControl(handle_, nullptr), cpp_core::FlowControl::kNone);
 
     // USB CDC devices can need a short resync window after multiple line-coding changes.
     sleepForMilliseconds(150);
@@ -354,21 +375,24 @@ TEST_F(SerialArduinoTest, CanRoundTripLineSettingsAndRecoverCommunication)
 TEST_F(SerialArduinoTest, IdleOutputControlFunctionsSucceed)
 {
     EXPECT_EQ(serialOutBytesWaiting(handle_, nullptr), 0);
-    EXPECT_EQ(serialDrain(handle_, nullptr), kSuccess);
+    EXPECT_EQ(serialWaitForDrain(handle_, nullptr), kSuccess);
     EXPECT_EQ(serialClearBufferOut(handle_, nullptr), kSuccess);
 }
 
 TEST(SerialInvalidHandleTest, InvalidHandleRead)
 {
     std::array<char, 256> buffer{};
-    const int result = serialRead(-1, buffer.data(), static_cast<int>(buffer.size()), 1000, 1, nullptr);
+    const cpp_core::SerialTimeoutConfig timeout_config12{1000, 1};
+    const int result = serialRead(-1, reinterpret_cast<std::uint8_t *>(buffer.data()), static_cast<int>(buffer.size()),
+                                  &timeout_config12, nullptr);
     EXPECT_EQ(result, kInvalidHandleError) << "Should return error for invalid handle";
 }
 
 TEST(SerialInvalidHandleTest, InvalidHandleWrite)
 {
     const char *data = "test";
-    const int result = serialWrite(-1, data, 4, 1000, 1, nullptr);
+    const cpp_core::SerialTimeoutConfig timeout_config13{1000, 1};
+    const int result = serialWrite(-1, reinterpret_cast<const std::uint8_t *>(data), 4, &timeout_config13, nullptr);
     EXPECT_EQ(result, kInvalidHandleError) << "Should return error for invalid handle";
 }
 

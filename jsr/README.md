@@ -42,8 +42,9 @@ distribution releases are still supported by their vendors.
 ## FFI metadata
 
 It also includes cpp-core FFI API metadata generated with
-[ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64/ffi.json` and
-`bin/aarch64/ffi.json`. It describes the exported C symbols, parameter and
+[ASTrein 3.0.0](https://github.com/Katze719/ASTrein/releases/tag/v3.0.0) at `bin/x86_64/ffi.json` and
+`bin/aarch64/ffi.json`, using the `astrein_ffi_api` schema version 3.
+It describes the exported C symbols, parameter and
 return types, callbacks, structs, default values, and API documentation used by
 runtime-specific FFI adapter generators.
 

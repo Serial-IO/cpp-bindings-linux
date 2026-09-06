@@ -5,9 +5,9 @@
 #include "detail/fail_validation.hpp"
 #include "detail/read_termios2.hpp"
 #include "detail/status_value.hpp"
+#include "detail/termios2.hpp"
 #include "detail/validate_data_bits_value.hpp"
 #include "detail/write_termios2.hpp"
-#include "detail/termios2.hpp"
 
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -15,7 +15,8 @@
 extern "C"
 {
 
-    MODULE_API auto serialSetDataBits(int64_t handle, int data_bits, ErrorCallbackT error_callback) -> int
+    MODULE_API auto serialSetDataBits(int64_t handle, cpp_core::DataBits data_bits, ErrorCallbackT error_callback)
+        -> int
     {
         cpp_bindings_linux::detail::HandleContext handle_context;
         const auto status =
@@ -25,20 +26,21 @@ extern "C"
             return status;
         }
 
-        if (!cpp_bindings_linux::detail::validateDataBitsValue(data_bits))
+        if (!cpp_bindings_linux::detail::validateDataBitsValue(cpp_core::toInt(data_bits)))
         {
             return cpp_bindings_linux::detail::failValidation<int>(
-                error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Configuration::kSetDataBitsError));
+                error_callback,
+                cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Configuration::kSetDataBitsError));
         }
 
         termios2 serial_settings{};
-        if (cpp_bindings_linux::detail::readTermios2<int>(
-                handle_context.file_descriptor, &serial_settings, error_callback) < 0)
+        if (cpp_bindings_linux::detail::readTermios2<int>(handle_context.file_descriptor, &serial_settings,
+                                                          error_callback) < 0)
         {
             return static_cast<int>(cpp_core::StatusCode::Control::kGetStateError);
         }
 
-        cpp_bindings_linux::detail::applyDataBits(&serial_settings, data_bits);
+        cpp_bindings_linux::detail::applyDataBits(&serial_settings, cpp_core::toInt(data_bits));
 
         if (cpp_bindings_linux::detail::writeTermios2<int>(
                 handle_context.file_descriptor, &serial_settings, error_callback,

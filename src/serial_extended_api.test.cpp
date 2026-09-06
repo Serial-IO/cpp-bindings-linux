@@ -4,8 +4,6 @@
 #include <cpp_core/interface/serial_list_ports.h>
 #include <cpp_core/interface/serial_out_bytes_total.h>
 #include <cpp_core/interface/serial_read.h>
-#include <cpp_core/interface/serial_read_line.h>
-#include <cpp_core/interface/serial_read_until.h>
 #include <cpp_core/interface/serial_read_until_sequence.h>
 #include <cpp_core/interface/serial_set_error_callback.h>
 #include <cpp_core/interface/serial_set_read_callback.h>
@@ -77,7 +75,10 @@ TEST_F(SerialExtendedApiTest, GlobalErrorCallbackActsAsFallback)
     serialSetErrorCallback(globalErrorCallback);
 
     std::array<char, 4> buffer{};
-    EXPECT_EQ(serialRead(-1, buffer.data(), static_cast<int>(buffer.size()), 10, 1, nullptr), kInvalidHandleError);
+    const cpp_core::SerialTimeoutConfig timeout_config0{10, 1};
+    EXPECT_EQ(serialRead(-1, reinterpret_cast<std::uint8_t *>(buffer.data()), static_cast<int>(buffer.size()),
+                         &timeout_config0, nullptr),
+              kInvalidHandleError);
     EXPECT_EQ(g_last_error_code.load(std::memory_order_relaxed), kInvalidHandleError);
 }
 
@@ -92,11 +93,13 @@ TEST_F(SerialExtendedApiTest, ReadWriteCallbacksAndTotalsTrackPipeHandles)
     serialSetWriteCallback(globalWriteCallback);
 
     const char *message = "hello";
-    ASSERT_EQ(serialWrite(pipefd[1], message, 5, 100, 1, nullptr), 5);
+    const cpp_core::SerialTimeoutConfig timeout_config1{100, 1};
+    ASSERT_EQ(serialWrite(pipefd[1], reinterpret_cast<const std::uint8_t *>(message), 5, &timeout_config1, nullptr), 5);
 
     std::array<char, 16> buffer{};
     ASSERT_EQ(serialInBytesWaiting(pipefd[0], nullptr), 5);
-    ASSERT_EQ(serialRead(pipefd[0], buffer.data(), 5, 100, 1, nullptr), 5);
+    const cpp_core::SerialTimeoutConfig timeout_config2{100, 1};
+    ASSERT_EQ(serialRead(pipefd[0], reinterpret_cast<std::uint8_t *>(buffer.data()), 5, &timeout_config2, nullptr), 5);
 
     EXPECT_EQ(std::string(buffer.data(), 5), "hello");
     EXPECT_EQ(g_last_write_callback.load(std::memory_order_relaxed), 5);
@@ -120,7 +123,10 @@ TEST_F(SerialExtendedApiTest, ReadHelpersStopAtRequestedTerminator)
         ASSERT_EQ(write(pipefd[1], line, std::strlen(line)), static_cast<ssize_t>(std::strlen(line)));
 
         std::array<char, 16> line_buffer{};
-        ASSERT_EQ(serialReadLine(pipefd[0], line_buffer.data(), static_cast<int>(line_buffer.size()), 100, 1, nullptr),
+        const cpp_core::SerialTimeoutConfig timeout_config3{100, 1};
+        ASSERT_EQ(serialReadUntilSequence(pipefd[0], reinterpret_cast<std::uint8_t *>(line_buffer.data()),
+                                          static_cast<int>(line_buffer.size()), &timeout_config3,
+                                          reinterpret_cast<const std::uint8_t *>("\n"), 1, nullptr),
                   6);
         EXPECT_EQ(std::string(line_buffer.data(), 6), "alpha\n");
 
@@ -139,8 +145,10 @@ TEST_F(SerialExtendedApiTest, ReadHelpersStopAtRequestedTerminator)
 
         std::array<char, 32> until_buffer{};
         unsigned char dash = '-';
-        ASSERT_EQ(serialReadUntil(pipefd[0], until_buffer.data(), static_cast<int>(until_buffer.size()), 100, 1, &dash,
-                                  nullptr),
+        const cpp_core::SerialTimeoutConfig timeout_config4{100, 1};
+        ASSERT_EQ(serialReadUntilSequence(pipefd[0], reinterpret_cast<std::uint8_t *>(until_buffer.data()),
+                                          static_cast<int>(until_buffer.size()), &timeout_config4,
+                                          reinterpret_cast<const std::uint8_t *>(&dash), 1, nullptr),
                   7);
         EXPECT_EQ(std::string(until_buffer.data(), 7), "prefix-");
 
@@ -158,8 +166,11 @@ TEST_F(SerialExtendedApiTest, ReadHelpersStopAtRequestedTerminator)
         ASSERT_EQ(write(pipefd[1], payload, std::strlen(payload)), static_cast<ssize_t>(std::strlen(payload)));
 
         std::array<char, 32> sequence_buffer{};
-        ASSERT_EQ(serialReadUntilSequence(pipefd[0], sequence_buffer.data(), static_cast<int>(sequence_buffer.size()),
-                                          100, 1, const_cast<char *>("END"), nullptr),
+        const cpp_core::SerialTimeoutConfig timeout_config5{100, 1};
+        ASSERT_EQ(serialReadUntilSequence(pipefd[0], reinterpret_cast<std::uint8_t *>(sequence_buffer.data()),
+                                          static_cast<int>(sequence_buffer.size()), &timeout_config5,
+                                          reinterpret_cast<const std::uint8_t *>(const_cast<char *>("END")), 3,
+                                          nullptr),
                   8);
         EXPECT_EQ(std::string(sequence_buffer.data(), 8), "more-END");
 
@@ -178,7 +189,9 @@ TEST_F(SerialExtendedApiTest, AbortReadInterruptsWaitingOperation)
     std::array<char, 8> buffer{};
     int read_result = 0;
     std::thread reader([&] {
-        read_result = serialRead(pipefd[0], buffer.data(), static_cast<int>(buffer.size()), 2000, 1, nullptr);
+        const cpp_core::SerialTimeoutConfig timeout_config6{2000, 1};
+        read_result = serialRead(pipefd[0], reinterpret_cast<std::uint8_t *>(buffer.data()),
+                                 static_cast<int>(buffer.size()), &timeout_config6, nullptr);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

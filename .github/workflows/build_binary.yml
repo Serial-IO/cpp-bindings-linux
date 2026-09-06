@@ -39,7 +39,7 @@ jobs:
     needs: ['setup-matrix']
     runs-on: ${{ matrix.runner }}
     env:
-      ASTREIN_VERSION: '2.0.0'
+      ASTREIN_VERSION: '3.0.0'
 
     strategy:
       fail-fast: false
