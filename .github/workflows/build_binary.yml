@@ -178,6 +178,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 'Enable Git metadata in the build container'
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git rev-parse --verify HEAD
+
       - name: 'Configure portable release'
         run: |
           cmake -S . \
