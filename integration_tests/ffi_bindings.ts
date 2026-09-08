@@ -39,7 +39,7 @@ const symbols = {
         parameters: ["i64", "pointer", "i32", "pointer", "pointer"] as const,
         result: "i32" as const,
     },
-};
+} as const;
 
 /**
  * Load the cpp-bindings-linux shared library
