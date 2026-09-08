@@ -184,7 +184,7 @@ TEST(SerialV3ApiTest, EventCallbackCanBeStartedReplacedAndStoppedRepeatedly)
     EXPECT_EQ(serialSetEventCallback(nullptr), 0);
 }
 
-TEST(SerialV3ApiDeathTest, ActiveMonitorIsStoppedOnExit)
+TEST(SerialV3ApiDeathTest, ActiveEventListenerIsStoppedOnExit)
 {
     EXPECT_EXIT(
         {

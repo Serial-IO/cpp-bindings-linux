@@ -18,7 +18,7 @@ namespace
 using EventCallback = void (*)(cpp_core::PortEvent, const char *);
 using cpp_bindings_linux::detail::UniqueFd;
 
-struct MonitorState
+struct EventListenerState
 {
     UniqueFd inotify_fd;
     UniqueFd stop_fd;
@@ -34,7 +34,7 @@ struct MonitorState
     }
 };
 
-void monitorLoop(const std::shared_ptr<MonitorState> &state, EventCallback callback)
+void eventListenerLoop(const std::shared_ptr<EventListenerState> &state, EventCallback callback)
 {
     alignas(inotify_event) char buffer[4096];
     while (!state->stopped.load(std::memory_order_acquire))
@@ -74,13 +74,13 @@ void monitorLoop(const std::shared_ptr<MonitorState> &state, EventCallback callb
     }
 }
 
-struct Monitor
+struct EventListener
 {
     std::mutex mutex;
-    std::shared_ptr<MonitorState> state;
+    std::shared_ptr<EventListenerState> state;
     std::thread thread;
 
-    ~Monitor()
+    ~EventListener()
     {
         if (state)
         {
@@ -93,17 +93,17 @@ struct Monitor
     }
 };
 
-Monitor g_monitor;
+EventListener g_event_listener;
 } // namespace
 
 MODULE_API auto serialSetEventCallback(EventCallback callback_fn, ErrorCallbackT error_callback) -> int
 {
-    // Build the replacement before changing the active monitor. A failed registration
+    // Build the replacement before changing the active event listener. A failed registration
     // leaves the current callback intact, and all descriptors are owned by its state.
-    std::shared_ptr<MonitorState> next;
+    std::shared_ptr<EventListenerState> next;
     if (callback_fn != nullptr)
     {
-        next = std::make_shared<MonitorState>();
+        next = std::make_shared<EventListenerState>();
         next->inotify_fd = UniqueFd(inotify_init1(IN_CLOEXEC | IN_NONBLOCK));
         if (!next->inotify_fd.valid() ||
             inotify_add_watch(next->inotify_fd.get(), "/dev/", IN_CREATE | IN_DELETE | IN_MOVED_TO | IN_MOVED_FROM) < 0)
@@ -122,19 +122,19 @@ MODULE_API auto serialSetEventCallback(EventCallback callback_fn, ErrorCallbackT
     std::thread previous;
     try
     {
-        std::lock_guard lock(g_monitor.mutex);
+        std::lock_guard lock(g_event_listener.mutex);
         std::thread replacement;
         if (next)
         {
-            replacement = std::thread(monitorLoop, next, callback_fn);
+            replacement = std::thread(eventListenerLoop, next, callback_fn);
         }
-        if (g_monitor.state)
+        if (g_event_listener.state)
         {
-            g_monitor.state->stop();
+            g_event_listener.state->stop();
         }
-        previous = std::move(g_monitor.thread);
-        g_monitor.state = std::move(next);
-        g_monitor.thread = std::move(replacement);
+        previous = std::move(g_event_listener.thread);
+        g_event_listener.state = std::move(next);
+        g_event_listener.thread = std::move(replacement);
     }
     catch (const std::system_error &error)
     {
