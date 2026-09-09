@@ -60,11 +60,10 @@ examples write the library to disk, load it, and release it again.
 
 ### Deno
 
-Deno provides native JSR imports and the built-in `Deno.dlopen` FFI API. Save
-this as `example.ts`:
+Deno provides native JSR imports and the built-in `Deno.dlopen` FFI API:
 
 ```ts
-import { aarch64, x86_64 } from "jsr:@serial/cpp-bindings-linux/bin";
+import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
 
 const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
 const path = `./${binary.filename}`;
@@ -80,21 +79,13 @@ const library = Deno.dlopen(path, {
 library.close();
 ```
 
-Run it with write and FFI permissions:
-
 ```sh
 deno run --allow-write --allow-ffi example.ts
 ```
 
 ### Bun
 
-Add the package through JSR's npm compatibility layer:
-
-```sh
-bunx jsr add @serial/cpp-bindings-linux
-```
-
-Then use Bun's built-in `bun:ffi` and `Bun.write` APIs:
+Use Bun's built-in `bun:ffi` and `Bun.write` APIs:
 
 ```ts
 import { dlopen } from "bun:ffi";
@@ -135,13 +126,6 @@ bun run example.ts
 
 Node.js does not provide a general-purpose C FFI API. This example uses
 [Koffi](https://koffi.dev/), together with JSR's npm compatibility layer:
-
-```sh
-npx jsr add @serial/cpp-bindings-linux
-npm install koffi
-```
-
-Save this as `example.mjs`:
 
 ```js
 import { writeFileSync } from "node:fs";
