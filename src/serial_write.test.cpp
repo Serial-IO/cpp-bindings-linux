@@ -1,6 +1,8 @@
 #include <cpp_core/interface/serial_write.h>
 #include <cpp_core/status_code.h>
 
+#include "detail/handle_types.hpp"
+
 #include <array>
 #include <cstring>
 #include <fcntl.h>
@@ -188,4 +190,31 @@ TEST_F(SerialWriteTest, WriteEmptyStringToDevNull)
 
     EXPECT_EQ(result, kBufferError);
     close(fd);
+}
+
+TEST_F(SerialWriteTest, RejectsNullNegativeAndOverflowingTimeouts)
+{
+    constexpr int kTimeoutError = static_cast<int>(cpp_core::StatusCode::Configuration::kSetTimeoutError);
+    cpp_bindings_linux::detail::UniqueFd fd(open("/dev/null", O_RDWR | O_NONBLOCK));
+    ASSERT_TRUE(fd.valid());
+    std::array<std::uint8_t, 4> buffer{};
+    const auto check = [&](const cpp_core::SerialTimeoutConfig *timeout) {
+        error_capture.last_code = 0;
+        EXPECT_EQ(serialWrite(fd.get(), buffer.data(), 4, timeout, error_callback), kTimeoutError);
+        EXPECT_EQ(error_capture.last_code, kTimeoutError);
+    };
+    check(nullptr);
+    for (const auto timeout : {cpp_core::SerialTimeoutConfig{-1, 1}, {1, -1}, {std::numeric_limits<int>::max(), 2}})
+    {
+        check(&timeout);
+    }
+}
+
+TEST_F(SerialWriteTest, AcceptsZeroTimeoutWithMaximumMultiplier)
+{
+    cpp_bindings_linux::detail::UniqueFd fd(open("/dev/null", O_RDWR | O_NONBLOCK));
+    ASSERT_TRUE(fd.valid());
+    std::array<std::uint8_t, 4> buffer{};
+    const cpp_core::SerialTimeoutConfig zero{0, std::numeric_limits<int>::max()};
+    EXPECT_EQ(serialWrite(fd.get(), buffer.data(), 4, &zero), 4);
 }
