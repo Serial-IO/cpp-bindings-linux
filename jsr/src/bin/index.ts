@@ -1,8 +1,8 @@
 /**
  * Module that provides serialized binaries and FFI metadata.
  *
- * The matching C API metadata, including struct definitions, is available as
- * `binary.ffi` in every runtime.
+ * The matching C API metadata, is available as
+ * `ffi` property in every runtime.
  *
  * @example
  * Usage with Deno
