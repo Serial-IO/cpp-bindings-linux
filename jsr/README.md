@@ -22,12 +22,6 @@ The prebuilt binaries require **glibc 2.28 or newer**. Compatibility depends on
 the installed glibc version rather than the distribution name. Common release
 baselines are shown below for orientation:
 
-| Distribution | Release baseline |
-| --- | --- |
-| Debian | 10+ |
-| Ubuntu | 20.04 LTS+ |
-| RHEL / Rocky Linux / AlmaLinux | 8+ |
-| Fedora | 29+ |
 | Distribution                   | Release baseline                 |
 |:------------------------------ |:-------------------------------- |
 | Debian                         | 10+                              |
