@@ -28,7 +28,13 @@ baselines are shown below for orientation:
 | Ubuntu | 20.04 LTS+ |
 | RHEL / Rocky Linux / AlmaLinux | 8+ |
 | Fedora | 29+ |
-| openSUSE Leap | 15.x (not compatible by default) |
+| Distribution                   | Release baseline                 |
+|:------------------------------ |:-------------------------------- |
+| Debian                         | 10+                              |
+| Ubuntu                         | 20.04 LTS+                       |
+| RHEL / Rocky Linux / AlmaLinux | 8+                               |
+| Fedora                         | 29+                              |
+| openSUSE Leap                  | 15.x (not compatible by default) |
 
 Check the installed version with:
 
