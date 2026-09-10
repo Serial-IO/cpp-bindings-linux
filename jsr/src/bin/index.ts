@@ -120,7 +120,7 @@ const aarch64 = {
    * runtime-specific FFI adapters.
    */
   ffi: aarch64ffi,
-};
+} as const;
 
 /**
  * The serialized `x86_64-linux-gnu` shared library and its FFI metadata.
@@ -139,6 +139,6 @@ const x86_64 = {
    * runtime-specific FFI adapters.
    */
   ffi: x86_64ffi,
-};
+} as const;
 
 export { aarch64, x86_64 };
