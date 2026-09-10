@@ -12,7 +12,6 @@ inline auto parseStopBits(int stop_bits, ErrorCallbackT error_callback, StatusCo
     switch (stop_bits)
     {
     case 0:
-    case 1:
         return StopBits::kOne;
     case 2:
         return StopBits::kTwo;

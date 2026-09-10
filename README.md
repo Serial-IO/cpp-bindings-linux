@@ -22,7 +22,8 @@ API documentation.
 - Ninja
 - A compiler with sufficient C++26 support
 
-CMake downloads `cpp-core` and GoogleTest automatically during configuration.
+CMake downloads `cpp-core` **v3.0.0** and GoogleTest automatically during
+configuration.
 
 ## Build
 
@@ -37,10 +38,10 @@ The shared library is written to `build/libcpp_bindings_linux.so`.
 
 Official release and JSR artifacts are built for these GNU/Linux targets:
 
-| Target | CPU baseline | Minimum glibc |
-| --- | --- | --- |
-| `x86_64-linux-gnu` | generic x86-64 | 2.28 |
-| `aarch64-linux-gnu` | ARMv8-A | 2.28 |
+| Target              | CPU baseline   | Minimum glibc |
+| ------------------- | -------------- | ------------- |
+| `x86_64-linux-gnu`  | generic x86-64 | 2.28          |
+| `aarch64-linux-gnu` | ARMv8-A        | 2.28          |
 
 ### Binary compatibility
 
@@ -48,13 +49,13 @@ The prebuilt binaries require **glibc 2.28 or newer**. Compatibility depends on
 the installed glibc version rather than the distribution name. Common release
 baselines are shown below for orientation:
 
-| Distribution | Release baseline |
-| --- | --- |
-| Debian | 10+ |
-| Ubuntu | 20.04 LTS+ |
-| RHEL / Rocky Linux / AlmaLinux | 8+ |
-| Fedora | 29+ |
-| openSUSE Leap | 15.x (not compatible by default) |
+| Distribution                   | Release baseline                 |
+| ------------------------------ | -------------------------------- |
+| Debian                         | 10+                              |
+| Ubuntu                         | 20.04 LTS+                       |
+| RHEL / Rocky Linux / AlmaLinux | 8+                               |
+| Fedora                         | 29+                              |
+| openSUSE Leap                  | 15.x (not compatible by default) |
 
 Check the installed version with:
 
@@ -79,8 +80,9 @@ cmake -S . -B build -G Ninja \
 cmake --build build --target cpp_bindings_linux
 ```
 
-The CI release builds use pinned `manylinux_2_28` images with GCC 14. GCC 16
-is used separately to generate the ASTrein FFI metadata.
+The CI release builds use pinned `manylinux_2_28` images with GCC 14. The FFI
+metadata is generated separately with ASTrein 3.0.0 and a GCC 14 compile
+context.
 
 To select a specific compiler, add it while configuring, for example:
 
@@ -99,7 +101,8 @@ cmake --build --preset linux-gcc-release --target cpp_bindings_linux_tests
 ctest --test-dir build --output-on-failure
 ```
 
-Tests that require a serial device use `SERIAL_TEST_PORT`. They are skipped when no suitable device is available.
+Tests that require a serial device use `SERIAL_TEST_PORT`. They are skipped when
+no suitable device is available.
 
 The optional runtime integration smoke tests currently use Deno 2 as their FFI
 test harness and require a built library. Deno is not required to consume the
@@ -112,4 +115,5 @@ deno task test
 
 ## License
 
-This project is licensed under the [GNU Lesser General Public License v3.0](LICENSE).
+This project is licensed under the
+[GNU Lesser General Public License v3.0](LICENSE).

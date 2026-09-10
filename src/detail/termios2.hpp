@@ -8,7 +8,8 @@
 #endif
 
 #ifndef BOTHER
-#define BOTHER 0x010000
+// Linux asm-generic/termbits.h: select the explicit c_ispeed/c_ospeed values.
+#define BOTHER 0x00001000
 #endif
 
 #ifndef CRTSCTS

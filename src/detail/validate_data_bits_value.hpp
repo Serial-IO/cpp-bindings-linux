@@ -11,7 +11,7 @@ namespace cpp_bindings_linux::detail
 {
 inline auto validateDataBitsValue(int data_bits) -> cpp_core::Status
 {
-    if (cpp_core::SerialConfig::tryMake(300, data_bits))
+    if (cpp_core::SerialConfig::tryMake(300, static_cast<cpp_core::DataBits>(data_bits)))
     {
         return cpp_core::ok();
     }

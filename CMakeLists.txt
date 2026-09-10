@@ -65,7 +65,7 @@ set(
 CPMAddPackage(
     NAME cpp_core
     GITHUB_REPOSITORY Serial-IO/cpp-core
-    GIT_TAG v2.0.1
+    GIT_TAG v3.0.0
     OPTIONS
     "CMAKE_EXPORT_COMPILE_COMMANDS OFF"
 )
@@ -230,7 +230,7 @@ if(CPP_BINDINGS_LINUX_STATIC_CXX_RUNTIME)
     )
 endif()
 
-file(GLOB SRC_UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
+file(GLOB SRC_UNIT_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
 file(GLOB TESTS_INTEGRATION "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.test.cpp")
 file(GLOB TEST_HELPER_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/test_helpers/*.cpp")
 set(TEST_SOURCES ${SRC_UNIT_TESTS} ${TESTS_INTEGRATION} ${TEST_HELPER_SOURCES})
@@ -257,6 +257,9 @@ if(TEST_SOURCES)
     )
 
     target_compile_features(cpp_bindings_linux_tests PRIVATE cxx_std_26)
+    target_compile_definitions(cpp_bindings_linux_tests PRIVATE
+        CPP_BINDINGS_LINUX_TEST_VERSION="${GIT_DESCRIBE}"
+    )
 
     include(GoogleTest)
     gtest_discover_tests(cpp_bindings_linux_tests)

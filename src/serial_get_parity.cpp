@@ -10,28 +10,29 @@
 extern "C"
 {
 
-    MODULE_API auto serialGetParity(int64_t handle, ErrorCallbackT error_callback) -> int
+    MODULE_API auto serialGetParity(int64_t handle, ErrorCallbackT error_callback) -> cpp_core::Parity
     {
         cpp_bindings_linux::detail::HandleContext handle_context;
         const auto status =
             cpp_bindings_linux::detail::acquireHandleContext<int>(handle, error_callback, &handle_context);
         if (status < 0)
         {
-            return status;
+            return static_cast<cpp_core::Parity>(status);
         }
 
         termios2 serial_settings{};
         if (ioctl(handle_context.file_descriptor, TCGETS2, &serial_settings) != 0)
         {
-            return cpp_bindings_linux::detail::failErrno<int>(
-                error_callback, cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Control::kGetStateError));
+            return static_cast<cpp_core::Parity>(cpp_bindings_linux::detail::failErrno<int>(
+                error_callback,
+                cpp_bindings_linux::detail::statusValue(cpp_core::StatusCode::Control::kGetStateError)));
         }
 
         if ((serial_settings.c_cflag & PARENB) == 0)
         {
-            return 0;
+            return cpp_core::Parity::kNone;
         }
-        return (serial_settings.c_cflag & PARODD) != 0 ? 2 : 1;
+        return (serial_settings.c_cflag & PARODD) != 0 ? cpp_core::Parity::kOdd : cpp_core::Parity::kEven;
     }
 
 } // extern "C"

@@ -1,17 +1,22 @@
 /**
  * Module that provides serialized binaries and FFI metadata.
  *
+ * The matching C API metadata, is available as
+ * `ffi` property in every runtime.
+ *
  * @example
  * Usage with Deno
  *
+ * Deno provides native JSR imports and the built-in `Deno.dlopen` FFI API:
+ *
  * ```ts
  * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
- *
+ * 
  * const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
  * const path = `./${binary.filename}`;
- *
+ * 
  * Deno.writeFileSync(path, Uint8Array.fromBase64(binary.data));
- *
+ * 
  * const library = Deno.dlopen(path, {
  *   serialOpen: {
  *     parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"],
@@ -24,24 +29,26 @@
  * @example
  * Usage with Bun
  *
+ * Use Bun's built-in `bun:ffi` and `Bun.write` APIs:
+ *
  * ```ts
  * import { dlopen } from "bun:ffi";
  * import { resolve } from "node:path";
  * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
- *
+ * 
  * const binary = process.arch === "arm64"
  *   ? aarch64
  *   : process.arch === "x64"
  *   ? x86_64
  *   : undefined;
- *
+ * 
  * if (!binary) {
  *   throw new Error(`Unsupported architecture: ${process.arch}`);
  * }
- *
+ * 
  * const path = resolve(binary.filename);
  * await Bun.write(path, Buffer.from(binary.data, "base64"));
- *
+ * 
  * const library = dlopen(path, {
  *   serialOpen: {
  *     args: ["ptr", "i32", "i32", "i32", "i32", "ptr"],
@@ -54,25 +61,28 @@
  * @example
  * Usage with Node.js
  *
+ * Node.js does not provide a general-purpose C FFI API. This example uses
+ * [Koffi](https://koffi.dev/), together with JSR's npm compatibility layer:
+ *
  * ```js
  * import { writeFileSync } from "node:fs";
  * import { resolve } from "node:path";
  * import koffi from "koffi";
  * import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
- *
+ * 
  * const binary = process.arch === "arm64"
  *   ? aarch64
  *   : process.arch === "x64"
  *   ? x86_64
  *   : undefined;
- *
+ * 
  * if (!binary) {
  *   throw new Error(`Unsupported architecture: ${process.arch}`);
  * }
- *
+ * 
  * const path = resolve(binary.filename);
  * writeFileSync(path, Buffer.from(binary.data, "base64"));
- *
+ * 
  * const library = koffi.load(path);
  * library.func("serialOpen", "int64_t", [
  *   "void *",
@@ -85,8 +95,6 @@
  * library.unload();
  * ```
  *
- * The matching C API metadata, including struct definitions, is available as
- * `binary.ffi` in every runtime.
  * @module
  */
 

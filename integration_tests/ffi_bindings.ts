@@ -7,23 +7,39 @@ export type LoadedLibrary = Deno.DynamicLibrary<typeof symbols>;
 export type SerialLib = LoadedLibrary["symbols"];
 
 const symbols = {
+    meta: {
+        parameters: ["pointer"],
+        result: "void",
+    },
+    serialReadUntilSequence: {
+        parameters: ["i64", "pointer", "i32", "pointer", "pointer", "i32", "pointer"],
+        result: "i32",
+    },
+    serialWaitForDrain: {
+        parameters: ["i64", "pointer"],
+        result: "i32",
+    },
+    serialSetEventCallback: {
+        parameters: ["pointer", "pointer"],
+        result: "i32",
+    },
     serialOpen: {
-        parameters: ["pointer", "i32", "i32", "i32", "i32", "pointer"] as const,
-        result: "i64" as const,
+        parameters: ["pointer", "pointer", "pointer"],
+        result: "i64",
     },
     serialClose: {
-        parameters: ["i64", "pointer"] as const,
-        result: "i32" as const,
+        parameters: ["i64", "pointer"],
+        result: "i32",
     },
     serialRead: {
-        parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
-        result: "i32" as const,
+        parameters: ["i64", "pointer", "i32", "pointer", "pointer"],
+        result: "i32",
     },
     serialWrite: {
-        parameters: ["i64", "pointer", "i32", "i32", "i32", "pointer"] as const,
-        result: "i32" as const,
+        parameters: ["i64", "pointer", "i32", "pointer", "pointer"],
+        result: "i32",
     },
-};
+} as const;
 
 /**
  * Load the cpp-bindings-linux shared library
@@ -38,7 +54,7 @@ export async function loadSerialLib(
 
     // Try to find the library in common build locations
     const possiblePaths = [
-        libraryPath,
+        libraryPath ?? Deno.env.get("SERIAL_LIBRARY_PATH"),
         "../build/libcpp_bindings_linux.so",
         "../build/libcpp_bindings_linux.so.0",
         "../build/libcpp_bindings_linux.so.0.0.0",

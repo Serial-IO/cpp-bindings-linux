@@ -11,7 +11,7 @@ namespace cpp_bindings_linux::detail
 {
 inline auto validateBaudrateValue(int baudrate) -> cpp_core::Status
 {
-    if (cpp_core::SerialConfig::tryMake(baudrate, 8))
+    if (cpp_core::SerialConfig::tryMake(baudrate, cpp_core::DataBits::kEight))
     {
         return cpp_core::ok();
     }

@@ -22,13 +22,13 @@ The prebuilt binaries require **glibc 2.28 or newer**. Compatibility depends on
 the installed glibc version rather than the distribution name. Common release
 baselines are shown below for orientation:
 
-| Distribution | Release baseline |
-| --- | --- |
-| Debian | 10+ |
-| Ubuntu | 20.04 LTS+ |
-| RHEL / Rocky Linux / AlmaLinux | 8+ |
-| Fedora | 29+ |
-| openSUSE Leap | 15.x (not compatible by default) |
+| Distribution                   | Release baseline                 |
+|:------------------------------ |:-------------------------------- |
+| Debian                         | 10+                              |
+| Ubuntu                         | 20.04 LTS+                       |
+| RHEL / Rocky Linux / AlmaLinux | 8+                               |
+| Fedora                         | 29+                              |
+| openSUSE Leap                  | 15.x (not compatible by default) |
 
 Check the installed version with:
 
@@ -42,8 +42,9 @@ distribution releases are still supported by their vendors.
 ## FFI metadata
 
 It also includes cpp-core FFI API metadata generated with
-[ASTrein](https://github.com/Katze719/ASTrein) at `bin/x86_64/ffi.json` and
-`bin/aarch64/ffi.json`. It describes the exported C symbols, parameter and
+[ASTrein 3.0.0](https://github.com/Katze719/ASTrein/releases/tag/v3.0.0) at `bin/x86_64/ffi.json` and
+`bin/aarch64/ffi.json`, using the `astrein_ffi_api` schema version 3.
+It describes the exported C symbols, parameter and
 return types, callbacks, structs, default values, and API documentation used by
 runtime-specific FFI adapter generators.
 
@@ -59,11 +60,10 @@ examples write the library to disk, load it, and release it again.
 
 ### Deno
 
-Deno provides native JSR imports and the built-in `Deno.dlopen` FFI API. Save
-this as `example.ts`:
+Deno provides native JSR imports and the built-in `Deno.dlopen` FFI API:
 
 ```ts
-import { aarch64, x86_64 } from "jsr:@serial/cpp-bindings-linux/bin";
+import { aarch64, x86_64 } from "@serial/cpp-bindings-linux/bin";
 
 const binary = Deno.build.arch === "aarch64" ? aarch64 : x86_64;
 const path = `./${binary.filename}`;
@@ -79,21 +79,13 @@ const library = Deno.dlopen(path, {
 library.close();
 ```
 
-Run it with write and FFI permissions:
-
 ```sh
 deno run --allow-write --allow-ffi example.ts
 ```
 
 ### Bun
 
-Add the package through JSR's npm compatibility layer:
-
-```sh
-bunx jsr add @serial/cpp-bindings-linux
-```
-
-Then use Bun's built-in `bun:ffi` and `Bun.write` APIs:
+Use Bun's built-in `bun:ffi` and `Bun.write` APIs:
 
 ```ts
 import { dlopen } from "bun:ffi";
@@ -134,13 +126,6 @@ bun run example.ts
 
 Node.js does not provide a general-purpose C FFI API. This example uses
 [Koffi](https://koffi.dev/), together with JSR's npm compatibility layer:
-
-```sh
-npx jsr add @serial/cpp-bindings-linux
-npm install koffi
-```
-
-Save this as `example.mjs`:
 
 ```js
 import { writeFileSync } from "node:fs";
